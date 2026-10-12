@@ -96,6 +96,17 @@ details summary{cursor:pointer;font-weight:700}
 header.top .snd{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer}
 header.top .snd.on{background:var(--teal);color:var(--navy);border-color:var(--teal);font-weight:700}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.stagger{opacity:1!important}#splash{display:none}}
+#alertmodal{position:fixed;inset:0;z-index:70;background:rgba(8,8,40,.94);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:18px;animation:fadeIn .35s ease both}
+#alertmodal .box{background:#fff;border-radius:18px;border:4px solid var(--coral);max-width:640px;width:100%;margin:auto;padding:22px 20px;text-align:center;animation:alertIn .5s cubic-bezier(.2,1.2,.3,1) both,alertGlow 1.1s .5s ease-in-out 4}
+#alertmodal .bang{width:64px;height:64px;border-radius:50%;background:var(--coral);color:#fff;font-size:44px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;animation:bangPulse .9s ease-in-out infinite}
+#alertmodal h1{color:var(--coral);letter-spacing:.14em;margin:4px 0 8px;font-size:34px}
+#alertmodal .lead2{font-size:21px;font-weight:700;margin:0 0 6px}
+#alertmodal table{margin:12px 0;text-align:left}#alertmodal td{font-size:15px}
+#alertmodal .btn{background:var(--coral);color:#fff;font-size:17px;padding:12px 22px;margin-top:6px}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes alertIn{0%{opacity:0;transform:scale(.7) rotate(-2deg)}60%{opacity:1;transform:scale(1.04) rotate(1deg)}100%{transform:none}}
+@keyframes alertGlow{0%,100%{box-shadow:0 0 0 0 rgba(242,106,68,0)}50%{box-shadow:0 0 0 14px rgba(242,106,68,.35)}}
+.pre .unlock,.pre .warn.alert,.pre .stagger{animation-play-state:paused!important}
 .chip{display:inline-block;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;border:1px solid var(--line);background:#fff}
 .chip.live{background:#E3F6F2;border-color:var(--teal);color:var(--teal-d)}.chip.off{background:#FFF1EC;border-color:var(--coral);color:#B2401F}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);margin-left:6px;vertical-align:middle}
@@ -148,7 +159,7 @@ function copy(text, btn){ (navigator.clipboard?navigator.clipboard.writeText(tex
 const randSession = () => { const a="ABCDEFGHJKMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<6;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; };
 let FAC = load("l5.fac", {session:randSession(), groups:5, cur:0, reveal:REVEAL_DEFAULT, codes:true, proj:false, choices:{}, online:{}});
 FAC.online = FAC.online || {};
-let GRP = load("l5.grp", {n:null, session:"", reveal:REVEAL_DEFAULT, codes:true, choices:[], unlocked:0, notes:{}, sent:{}, splashed:{}});
+let GRP = load("l5.grp", {n:null, session:"", reveal:REVEAL_DEFAULT, codes:true, choices:[], unlocked:0, notes:{}, sent:{}, splashed:{}, warned:{}});
 GRP.sent = GRP.sent || {};
 const saveFac = () => save("l5.fac", FAC), saveGrp = () => save("l5.grp", GRP);
 const facChoices = n => (FAC.choices[n] = FAC.choices[n] || [null,null,null,null,null]);
@@ -301,7 +312,7 @@ function shell(inner, tab){
 function viewHome(){
   return shell(`<h1>The Last 5 Days</h1><p class="lead">An online version of Activity 1 (the simulation) and Activity 1.1 (The Performance Aftermath).</p>
   <div class="grid g2">
-   <div class="card"><h2>Facilitator</h2><p>Open each day, watch every group's choice arrive live, edit if needed and project the scoreboard. Capacity and Trust appear when 4 Days are left. A code is required.</p><a class="btn" href="#/facilitator">Open the console</a></div>
+   <div class="card"><h2>Facilitator</h2><p>Open each day, watch every group's choice arrive live, edit if needed and project the scoreboard. A code is required.</p><a class="btn" href="#/facilitator">Open the console</a></div>
    <div class="card"><h2>Group</h2><p>Join with your group number and the session code. Choose one action per day.</p><a class="btn dark" href="#/group">Join as a group</a></div>
    <div class="card"><h2>Aftermath (1.1)</h2><p>After the last day: see what happened, then answer WHAT? SO WHAT? NOW WHAT? and Keep / Stop / Start.</p><a class="btn sec" href="#/aftermath">Open the Aftermath</a></div>
   </div>`, "#/");
@@ -313,17 +324,15 @@ function viewGate(target){
 }
 function facScore(proj){
   const groups = Array.from({length:FAC.groups},(_,i)=>i+1);
-  const showHidden = !proj || (FAC.cur>=FAC.reveal);
+  const revealed = !proj || (FAC.cur>=FAC.reveal), final = !proj || FAC.cur>5;     // projector: Capacity / Trust only exist from the reveal day, Real Target from the final reveal
+  const cell=(key,v,bold)=>(v==="—") ? `<span>${v}</span>` : `${bold?"<b>":""}${cntQ(key,v)}${bold?"</b>":""}`;
   const rows = groups.map(n=>{
     const ch=facChoices(n), upToT=Math.min(FAC.cur,5), upToHidden = FAC.cur>5 ? 5 : FAC.cur-1;
     const tT = totals(ch, upToT), tH = totals(ch, Math.max(0,upToHidden)), full = totals(ch,5);
-    const T = proj ? tT.T : full.T;
-    const C = proj ? (showHidden?tH.C:"?") : full.C, Tr = proj ? (showHidden?tH.Tr:"?") : full.Tr;
-    const R = proj ? (FAC.cur>5 ? full.R : "?") : (doneCount(ch)?full.R:"—");
-    const cell=(key,v,bold)=>(v==="?"||v==="—") ? `<span class="${v==="?"?"q":""}" data-k="${key}">${v}</span>` : `${bold?"<b>":""}${cntQ(key,v)}${bold?"</b>":""}`;
-    return `<tr><td class="lab">Group ${n}</td><td>${cell("f"+n+"T",T,true)}</td><td>${cell("f"+n+"C",C)}</td><td>${cell("f"+n+"Tr",Tr)}</td><td>${cell("f"+n+"R",R,true)}</td><td class="note">${doneCount(ch)}/5</td></tr>`;
+    const T = proj ? tT.T : full.T, C = proj ? tH.C : full.C, Tr = proj ? tH.Tr : full.Tr, R = proj ? full.R : (doneCount(ch)?full.R:"—");
+    return `<tr><td class="lab">Group ${n}</td><td>${cell("f"+n+"T",T,true)}</td>${revealed?`<td>${cell("f"+n+"C",C)}</td><td>${cell("f"+n+"Tr",Tr)}</td>`:""}${final?`<td>${cell("f"+n+"R",R,true)}</td>`:""}<td class="note">${doneCount(ch)}/5</td></tr>`;
   }).join("");
-  return `<div class="scroll"><table><tr><th></th><th>Target</th><th>Capacity</th><th>Trust</th><th>Real Target</th><th>Played</th></tr>${rows}</table></div>`;
+  return `<div class="scroll"><table><tr><th></th><th>Target</th>${revealed?"<th>Capacity</th><th>Trust</th>":""}${final?"<th>Real Target</th>":""}<th>Played</th></tr>${rows}</table></div>`;
 }
 function viewFacilitator(){
   const n=FAC.groups, cur=FAC.cur, day = (cur>=1&&cur<=5)?dlabel(DATA.rounds[cur-1].day):(cur===6?"Final reveal":"not started yet");
@@ -356,7 +365,19 @@ function viewFacilitator(){
   <div class="row"><button class="btn sec sm" data-act="export">Export session</button><button class="btn sec sm" data-act="reset">Reset session</button></div>`, "#/facilitator");
 }
 
-/* ---------- group ---------- */
+/* the strong warning shown once, at the start of the reveal day */
+let HOLD=false;
+function alertNeeded(){ const k=doneCount(GRP.choices), r=Math.min(k+1,6); return k>=1 && r<=5 && r===GRP.reveal && !(GRP.codes && GRP.unlocked<r) && !SHOW_RESULT && !(GRP.warned&&GRP.warned[r]); }
+function alertHtml(ch, r){
+  const n=r-1, rows=[]; for(let i=0;i<n;i++){ const o=fx(ch,i); if(!o) continue; const b=totals(ch,i), a=totals(ch,i+1);
+    rows.push(`<tr><td class="lab">${dlabel(DATA.rounds[i].day)} · you chose ${ch[i]}</td><td class="${dcls(o.capacity)}">${arrow(o.capacity)} Capacity ${verb(o.capacity)} (${b.C}% → ${a.C}%)</td><td class="${dcls(o.trust)}">${arrow(o.trust)} Trust ${verb(o.trust)} (${b.Tr}% → ${a.Tr}%)</td></tr>`); }
+  const who = n===1 ? `Your ${dlabel(DATA.rounds[0].day)} decision` : "Your earlier decisions";
+  return `<div id="alertmodal"><div class="box"><div class="bang">!</div><h1>WATCH OUT</h1><p class="lead2">${who} did not only change the Target.</p>
+    <p style="margin:0 0 4px">It also changed <b>Capacity</b> and <b>Trust</b>, and you could not see it until now.</p>
+    <div class="scroll"><table><tr><th></th><th>Capacity</th><th>Trust</th></tr>${rows.join("")}</table></div>
+    <p style="font-weight:700">From now on, do not only watch the Target. Every decision moves other numbers too.</p>
+    <button class="btn" data-act="gotit">Got it · show me everything</button></div></div>`;
+}
 const arrow = v => v>0 ? "↑" : (v<0 ? "↓" : "→");
 const verb = v => v>0 ? "increased by "+v : (v<0 ? "decreased by "+Math.abs(v) : "did not change");
 const dcls = v => v>0 ? "up" : (v<0 ? "down" : "");
@@ -375,7 +396,8 @@ function groupTiles(ch, r){
   const dT = k>=1 ? tT.T-lastT.T : 0, dC = tH.C-prevH.C, dTr = tH.Tr-prevH.Tr;
   const first = hiddenOK && r===reveal && ANIM_NOW;
   const tile=(idx,label,key,v,from,hidden,note,delta)=>`<div class="tile ${hidden?"hid":""} ${(first&&idx>0)?"unlock":""}" ${(first&&idx>0)?`style="animation-delay:${(idx*0.22).toFixed(2)}s"`:""}><div class="k">${label}</div><div class="v">${hidden?"?":cnt(key,v,from)}</div>${(!hidden && delta!==undefined)?`<div class="d ${dcls(delta)}">${arrow(delta)} ${delta===0?"no change":(delta>0?"+":"\u2212")+Math.abs(delta)} since the last day</div>`:`<div class="d">${note||""}</div>`}</div>`;
-  return `<div class="grid g4">${tile(0,"Target attainment","gT",tT.T,lastT.T,false,"visible from the start",k>=1?dT:undefined)}${tile(1,"Team capacity","gC",tH.C,prevH.C,!hiddenOK,"hidden for now",hiddenOK?dC:undefined)}${tile(2,"Team trust","gTr",tH.Tr,prevH.Tr,!hiddenOK,"hidden for now",hiddenOK?dTr:undefined)}</div>`;
+  if(!hiddenOK) return `<div class="grid g4">${tile(0,"Target attainment","gT",tT.T,lastT.T,false,"",k>=1?dT:undefined)}</div>`;   // nothing else exists yet, as far as the group knows
+  return `<div class="grid g4">${tile(0,"Target attainment","gT",tT.T,lastT.T,false,"visible from the start",k>=1?dT:undefined)}${tile(1,"Team capacity","gC",tH.C,prevH.C,false,"",dC)}${tile(2,"Team trust","gTr",tH.Tr,prevH.Tr,false,"",dTr)}</div>`;
 }
 function viewGroup(q){
   if(q.s){ GRP.session=q.s; GRP.reveal=+q.r||REVEAL_DEFAULT; GRP.codes=q.c!=="0"; if(q.g && !GRP.n) GRP.n=+q.g; saveGrp(); }
@@ -404,7 +426,7 @@ function viewGroup(q){
   return shell(`${top}${r===GRP.reveal?warnCard(ch,r):""}${groupTiles(ch,r)}
   <div class="card" style="margin-top:12px"><span class="pill">${dlabel(rd.day)}</span><h2 style="margin-top:8px">${esc(rd.name)}</h2><p>${esc(rd.scenario)}</p><label>Choose ONE action</label>
   ${rd.options.map((o,i)=>`<button class="opt ${sel===LETTERS[i]?"sel":""}" data-act="pick" data-l="${LETTERS[i]}"><span class="l">${LETTERS[i]}</span><span>${esc(o.text)}</span></button>`).join("")}
-  <div class="row"><button class="btn go" data-act="lock" ${sel?"":"disabled"}>Lock in our choice</button><span class="note">${r>=GRP.reveal?"You will see every effect straight away.":"You will see the effect on the Target straight away. Other effects appear later."}</span></div></div>`, "#/group");
+  <div class="row"><button class="btn go" data-act="lock" ${sel?"":"disabled"}>Lock in our choice</button><span class="note">${r>=GRP.reveal?"You will see every effect straight away.":"You will see the effect on the Target straight away."}</span></div></div>`, "#/group");
 }
 const sentText=(i,ch)=>GRP.sent&&GRP.sent[i+1]?"Sent to your facilitator ✓":"Not sent yet. If it stays like this, tell your facilitator the code "+toCode(GRP.n,ch)+".";
 function viewResult(){ /* shown right after locking a choice */
@@ -417,7 +439,7 @@ function viewResult(){ /* shown right after locking a choice */
     ? `<div class="grid g4">${eff(0,"Target attainment","T",o.target,b.T,t.T)}${eff(1,"Team capacity","C",o.capacity,b.C,t.C)}${eff(2,"Team trust","Tr",o.trust,b.Tr,t.Tr)}</div>
        <p class="note" style="margin-top:12px">${sent} You now see everything move as you decide. ${next}</p>`
     : `<div style="max-width:320px">${(()=>{ const d=o.target; return `<div ${st(0)} data-fx="${d>0?"pos":(d<0?"neg":"zero")}"><div class="k">Target attainment</div><div class="v ${cls(d)}">${arrow(d)} ${cntQ("r"+i+"T",Math.abs(d),0,d>0?"+":(d<0?"\u2212":""),"%")}</div><div class="d">Target now ${t.T}%</div></div>`; })()}</div>
-       <p class="note" style="margin-top:12px">${sent} Capacity and Trust are hidden for now and appear when ${DATA.rounds[GRP.reveal-1]?dlabel(DATA.rounds[GRP.reveal-1].day):"the end"} are left. ${next}</p>`;
+       <p class="note" style="margin-top:12px">${sent} ${next}</p>`;
   return shell(`<div class="card"><span class="pill">${dlabel(rd.day)} · your choice ${ch[i]}</span> <span class="${ANIM_NOW?"stamp":""} pill t" style="margin-left:6px">Locked in ✓</span><p style="margin:10px 0">${esc(o.text)}</p>${body}
    <a class="btn" href="#/group" data-act="next" style="margin-top:8px;display:inline-block">${i+1<5?"Continue":"Go to the final reveal"}</a></div>`, "#/group");
 }
@@ -468,7 +490,7 @@ function splashFor(path, fresh){
   const r=Math.min(doneCount(GRP.choices)+1,6); if(r>5 || (GRP.codes && GRP.unlocked<r)) return null;
   GRP.splashed=GRP.splashed||{}; if(GRP.splashed[r]) return null; GRP.splashed[r]=true; saveGrp();
   const rd=DATA.rounds[r-1], hot=r===GRP.reveal;
-  return {big: rd.day===1?"1 DAY":rd.day+" DAYS", small:"left · "+(hot?"the numbers you could not see are about to move":rd.name), hot, day:rd.day, r};
+  return {big: rd.day===1?"1 DAY":rd.day+" DAYS", small:"left · "+(hot?"watch out":rd.name), hot, day:rd.day, r};
 }
 function afterRender(path, fresh){
   if(!fresh || !(path==="#/group" && GRP.n)) return;
@@ -494,6 +516,9 @@ function route(){
   const commit=()=>{
     $("#app").innerHTML=html; setStatus(SYNC.status); LAST_KEY=key; if(fresh) FRESH_T=Date.now();
     if(fresh && !REDUCED()){ const m=$("#app main"); if(m){ m.classList.add("enter"); STATS.enter++; } }
+    const needAlert = fresh && path==="#/group" && GRP.n && alertNeeded();
+    const m=$("#app main"); if(m && (needAlert || HOLD)) m.classList.add("pre");
+    if(needAlert){ HOLD=true; STATS.alerts=(STATS.alerts||0)+1; const old=$("#alertmodal"); if(old) old.remove(); document.body.insertAdjacentHTML("beforeend", alertHtml(GRP.choices, Math.min(doneCount(GRP.choices)+1,6))); sfx("warn"); return; }
     runFx(fresh); afterRender(path, fresh);
   };
   if(sp){ const tok=++TOKEN; LAST_KEY=key; FRESH_T=Date.now(); showSplash(sp.big, sp.small, sp.hot); sfx("day",sp.day); if(sp.hot) setTimeout(()=>sfx("warn"),900); setTimeout(()=>{ if(tok===TOKEN) commit(); },1250); return; }
@@ -505,6 +530,7 @@ document.addEventListener("click",e=>{
   if(a==="copycode"){ copy(toCode(+b.dataset.g, facChoices(+b.dataset.g)), b); return; }
   if(a==="copylink"){ copy($(".code[style*='break-all']").textContent, b); return; }
   if(a==="opencur"){ FAC.cur=+b.dataset.v; saveFac(); route(); syncSend({t:"cur",cur:FAC.cur}); syncSend({t:"settings",reveal:FAC.reveal,codes:FAC.codes}); return; }
+  if(a==="gotit"){ const r=Math.min(doneCount(GRP.choices)+1,6); GRP.warned=GRP.warned||{}; GRP.warned[r]=true; saveGrp(); HOLD=false; const md=$("#alertmodal"); if(md) md.remove(); const mm=$("#app main"); if(mm) mm.classList.remove("pre"); runFx(true); afterRender("#/group", true); return; }
   if(a==="snd"){ const on=!soundEnabled(); save("l5.snd",on); if(on) sfx("ping"); route(); return; }
   if(a==="pinok"){ if($("[data-act=pin]").value.trim()===FAC_PIN){ sessionStorage.setItem("l5.ok","1"); sfx("unlock"); location.hash=b.dataset.target; route(); } else { sfx("error"); $("#pinmsg").textContent="Wrong code."; } return; }
   if(a==="newsession"){ if(confirm("Create a new session code? Groups will need the new link.")){ FAC.session=randSession(); saveFac(); syncStop(); route(); } return; }
@@ -512,9 +538,9 @@ document.addEventListener("click",e=>{
   if(a==="apply"){ const lines=$("[data-act=paste]").value.split(/\n/); let ok=0; lines.forEach(l=>{const c=fromCode(l); if(c && c.n>=1 && c.n<=8){ FAC.groups=Math.max(FAC.groups,c.n); FAC.choices[c.n]=c.ch; ok++; }}); saveFac(); route(); if(!ok) alert("No valid codes found. Use the form G3-BCA."); else Object.keys(FAC.choices).forEach(g=>syncSend({t:"set",g:+g,ch:FAC.choices[g].map(x=>x||"-").join("")})); return; }
   if(a==="export"){ copy(JSON.stringify(FAC), b); return; }
   if(a==="reset"){ if(confirm("Reset the whole facilitator session? A new session code is created.")){ FAC={session:randSession(),groups:5,cur:1,reveal:REVEAL_DEFAULT,codes:true,proj:false,choices:{},online:{}}; saveFac(); syncStop(); route(); } return; }
-  if(a==="join"){ const n=+$("[data-act=gnum]").value, s=$("[data-act=gsession]").value.trim(); if(!s){ alert("Enter the session code."); return; } GRP={n,session:s,reveal:GRP.reveal||REVEAL_DEFAULT,codes:GRP.codes!==false,choices:[],unlocked:0,notes:{},sent:{},splashed:{}}; saveGrp(); sfx("join"); route(); syncSend({t:"hello",g:n}); return; }
+  if(a==="join"){ const n=+$("[data-act=gnum]").value, s=$("[data-act=gsession]").value.trim(); if(!s){ alert("Enter the session code."); return; } GRP={n,session:s,reveal:GRP.reveal||REVEAL_DEFAULT,codes:GRP.codes!==false,choices:[],unlocked:0,notes:{},sent:{},splashed:{},warned:{}}; saveGrp(); sfx("join"); route(); syncSend({t:"hello",g:n}); return; }
   if(a==="gcopy"){ copy(toCode(GRP.n,GRP.choices), b); return; }
-  if(a==="gleave"){ if(confirm("Leave this group and clear your choices on this device?")){ GRP={n:null,session:GRP.session,reveal:GRP.reveal,codes:GRP.codes,choices:[],unlocked:0,notes:{}}; saveGrp(); route(); } return; }
+  if(a==="gleave"){ if(confirm("Leave this group and clear your choices on this device?")){ GRP={n:null,session:GRP.session,reveal:GRP.reveal,codes:GRP.codes,choices:[],unlocked:0,notes:{},warned:{}}; saveGrp(); HOLD=false; const md=$("#alertmodal"); if(md) md.remove(); route(); } return; }
   if(a==="gsync"){ const s=prompt("Paste the code from your facilitator (like G3-BCA):"); const c=fromCode(s); if(c){ GRP.choices=c.ch; GRP.unlocked=Math.max(GRP.unlocked,doneCount(c.ch)+(GRP.codes?0:1)); saveGrp(); route(); } else if(s) alert("That code is not valid."); return; }
   if(a==="unlock"){ const r=doneCount(GRP.choices)+1, v=$("[data-act=gcode]").value.trim(); if(!GRP.codes || v===roundCode(GRP.session,r)){ GRP.unlocked=r; saveGrp(); sfx("unlock"); route(); } else { sfx("error"); $("#gmsg").textContent="That code is not right. Check with your facilitator."; } return; }
   if(a==="pick"){ GRP.pick=b.dataset.l; saveGrp(); sfx("pick",LETTERS.indexOf(b.dataset.l)); route(); return; }
