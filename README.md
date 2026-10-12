@@ -20,23 +20,31 @@ This keeps casual visitors out; it is not strong security, because the code is i
 ## Run a session
 1. **Setup and group link**: a random **session code** is created for you (press *New session code* for every session). Copy the **group link** and send it to the groups.
 2. Groups open the link, pick their **group number** and press **Join**. A green dot appears next to their group in your console.
-3. Press **Open Day 5**. Every group screen unlocks by itself and shows the situation and options A–D.
+3. Press **Open 5 Days**. Every group screen unlocks by itself and shows the situation and options A–D. The days are written as a countdown: **5 Days, 4 Days, 3 Days, 2 Days, 1 Day**.
 4. A group chooses **one action** and presses **Lock in our choice**. It sees the effect on the **Target only**, and **its choice appears in your table by itself** (the cell flashes). You do not type anything.
-5. Press **Open Day 4** when you are ready. Each group first sees a **"Watch out" warning**: its Day 5 choice also changed **Capacity** and **Trust**, with the exact movement (for example "Capacity decreased by 8 (75% → 67%)", "Trust increased by 3", or "did not change"). From then on **every effect of every choice is shown straight away** (Target, Capacity, Trust, Continuity, with arrows ↑ ↓), and the cards show how each number moved since the last day. (You can move the reveal day in Setup.)
-6. Continue to Day 3, Day 2, Day 1, then **Final reveal**: everything is visible and **Real Target** (the average of Target, Capacity and Trust) is shown.
+5. Press **Open 4 Days** when you are ready. Each group first sees a **"Watch out" warning**: its Day 5 choice also changed **Capacity** and **Trust**, with the exact movement (for example "Capacity decreased by 8 (75% → 67%)", "Trust increased by 3", or "did not change"). From then on **every effect of every choice is shown straight away** (Target, Capacity, Trust, Continuity, with arrows ↑ ↓), and the cards show how each number moved since the last day. (You can move the reveal day in Setup.)
+6. Continue with 3 Days, 2 Days, 1 Day, then **Final reveal**: everything is visible and **Real Target** (the average of Target, Capacity and Trust) is shown.
 7. **Projector view** shows the room only what groups are allowed to see. Switch back to see every number.
 8. **Compare (1.1)** is the debrief screen. Groups continue to **Aftermath (1.1)**: a chart of their decisions, WHAT? SO WHAT? NOW WHAT?, and Keep / Stop / Start (one item each).
 
 You can still **edit any cell** in the table. The change is sent to that group's screen.
 
 ## Game feel
-- Each day opens with a full-screen **DAY splash** (Day 4 has a warmer "the numbers you could not see are about to move" splash), and screens slide in.
-- A **progress track** (D5 → D1) fills as the group plays.
-- Numbers **count up or down** to their new value and flash green or coral. On Day 4 the hidden tiles **flip open**, and the "Watch out" card drops in with a pulse.
-- After **Lock in** a stamp appears and the effects pop in one by one. The **Final reveal** shows the four scores in sequence and fills the Real Target bar.
+- Each stage opens with a full-screen **countdown splash** ("5 DAYS · left · Pressure Arrives"); the screen then slides in. The 4-Days stage has a warmer splash: "the numbers you could not see are about to move".
+- A **progress track** (5 → 1, "days left") fills as the group plays.
+- Numbers **count up or down** to their new value and flash green or coral. At 4 Days the hidden tiles **flip open** and the "Watch out" card drops in with a pulse.
+- After **Lock in** a "Locked in ✓" stamp appears and the effects pop in one by one. The **Final reveal** shows the four scores in sequence and fills the Real Target bar.
 - Facilitator console: a **toast** appears when a group joins or locks a choice, and scoreboard numbers move when they change.
-- **Sound** is optional and **off by default**: press **Sound off** in the top bar (each device has its own switch). Short beeps for picking, locking, a new day, the warning and the reveal.
 - Devices set to "reduce motion" get no animations or splash, only the content.
+
+## Sound effects
+Sound uses short synthesized sounds (no files). It is **on by default on group screens** (after the first tap, as browsers require) and **off by default on the facilitator pages**. The **Sound on / Sound off** button in the top bar changes it for that device and is remembered.
+- **Taps and choices:** a soft click on every button, a different note for options A, B, C and D, a "lock" thud-and-chime when the choice is locked.
+- **Countdown:** a whoosh, a boom and **one tick for every day left** when a stage opens (5 ticks for 5 Days, 1 for 1 Day).
+- **Warning (4 Days):** a siren with a low rumble, then a "flip" sparkle for each tile that unlocks.
+- **Results:** a rising chime for an increase, a falling buzz for a decrease, a neutral note for no change; a glide up or down while numbers count.
+- **Final reveal:** a fanfare, a note for each score and a rising sweep as the Real Target fills.
+- **Other:** a welcome jingle when joining, a short error buzz for a wrong code, an "unlock" chime for a right one, and a ping on the facilitator console when a group joins or locks.
 
 ## How the live connection works
 A website on GitHub has no server, so the app sends tiny messages (group number, day, letter) through the **free public relay ntfy.sh**, on a private topic built from your session code. Because of that:
