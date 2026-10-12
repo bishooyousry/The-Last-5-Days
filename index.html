@@ -50,6 +50,10 @@ td.lab{text-align:left;font-weight:700;background:var(--ice)}
 .bar{display:flex;align-items:end;gap:6px;height:140px}.bar div{flex:1;border-radius:6px 6px 0 0;min-height:2px}
 details summary{cursor:pointer;font-weight:700}
 .proj table{font-size:26px}.proj th{font-size:18px}.proj td{padding:12px}
+.warn{border-left:6px solid var(--coral);background:#FFF4EF;border-radius:12px;padding:14px 16px;margin:12px 0}
+.warn h2{margin:0 0 6px;display:flex;align-items:center;gap:10px}.warn .bang{flex:none;width:28px;height:28px;border-radius:50%;background:var(--coral);color:#fff;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.warn table td,.warn table th{font-size:14px}.up{color:var(--teal-d);font-weight:700}.down{color:var(--coral);font-weight:700}
+.tile .d.up,.tile .d.down{font-size:14px}
 .chip{display:inline-block;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;border:1px solid var(--line);background:#fff}
 .chip.live{background:#E3F6F2;border-color:var(--teal);color:var(--teal-d)}.chip.off{background:#FFF1EC;border-color:var(--coral);color:#B2401F}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);margin-left:6px;vertical-align:middle}
@@ -220,7 +224,7 @@ function viewFacilitator(){
   const openBtns = [1,2,3,4,5].map(r=>`<button class="btn ${cur===r?"":"sec"}" data-act="opencur" data-v="${r}">${cur===r?"Day "+DATA.rounds[r-1].day+" is open":"Open Day "+DATA.rounds[r-1].day}</button>`).join(" ")+` <button class="btn ${cur===6?"":"sec"}" data-act="opencur" data-v="6">${cur===6?"Final reveal is open":"Final reveal"}</button>`;
   const codeBlock = `<div class="card"><h2>Open the days</h2><div class="row">${openBtns}</div>
       ${(cur>=1&&cur<=5)?`<p style="margin-top:12px"><label>Backup code for Day ${DATA.rounds[cur-1].day} (only if a group is offline)</label><span class="big code">${roundCode(FAC.session,cur)}</span></p>`:`<p class="note" style="margin-top:12px">${cur===0?"Nothing is open yet. Press Open Day 5 when the groups are ready.":"Everything is visible. Open Compare (1.1) for the debrief."}</p>`}
-      <p class="note">Pressing a button opens that day on every group's screen. Capacity, Trust and Continuity become visible on a group's screen when it reaches Day ${DATA.rounds[FAC.reveal-1]?DATA.rounds[FAC.reveal-1].day:"the end"}.</p></div>`;
+      <p class="note">Pressing a button opens that day on every group's screen. On the reveal day each group sees a "Watch out" warning with what its earlier choices did to Capacity and Trust, and after that every effect moves in front of it. It starts on Day ${DATA.rounds[FAC.reveal-1]?DATA.rounds[FAC.reveal-1].day:"the end"}.</p></div>`;
   return shell(`<h1>Facilitator console</h1><p class="lead">Now showing: <b>${day}</b>. <span id="syncchip" class="chip"></span> Groups' choices arrive here by themselves. You can still edit any cell.</p>
   <div class="card"><details ${FAC.setup?"open":""}><summary>Setup and group link</summary><div class="row" style="margin-top:10px">
     <div><label>Groups</label><select data-act="groups">${[2,3,4,5,6,7,8].map(x=>`<option ${x===n?"selected":""}>${x}</option>`).join("")}</select></div>
@@ -239,11 +243,24 @@ function viewFacilitator(){
 }
 
 /* ---------- group ---------- */
+const arrow = v => v>0 ? "↑" : (v<0 ? "↓" : "→");
+const verb = v => v>0 ? "increased by "+v : (v<0 ? "decreased by "+Math.abs(v) : "did not change");
+const dcls = v => v>0 ? "up" : (v<0 ? "down" : "");
+function fx(ch, i){ const l=ch[i]; return l ? DATA.rounds[i].options[LETTERS.indexOf(l)] : null; }
+/* heads-up shown on the first day the hidden numbers are revealed: what the earlier choices did behind the scenes */
+function warnCard(ch, r){
+  const n=r-1; if(n<1) return "";
+  const rows=[]; for(let i=0;i<n;i++){ const o=fx(ch,i); if(!o) continue; const b=totals(ch,i), a=totals(ch,i+1);
+    rows.push(`<tr><td class="lab">Day ${DATA.rounds[i].day} · you chose ${ch[i]}</td><td class="${dcls(o.capacity)}">${arrow(o.capacity)} Capacity ${verb(o.capacity)} (${b.C}% → ${a.C}%)</td><td class="${dcls(o.trust)}">${arrow(o.trust)} Trust ${verb(o.trust)} (${b.Tr}% → ${a.Tr}%)</td><td>${arrow(0)} Continuity did not change</td></tr>`); }
+  const head = n===1 ? `Watch out: your Day ${DATA.rounds[0].day} choice also changed things you could not see.` : "Watch out: your earlier choices also changed things you could not see.";
+  return `<div class="warn"><h2><span class="bang">!</span>${head}</h2><p style="margin:0 0 8px">Until now you only saw the Target. Here is what those choices did to <b>Capacity</b> and <b>Trust</b>. From now on you will see everything move as you decide.</p><div class="scroll"><table><tr><th></th><th>Capacity</th><th>Trust</th><th>Continuity</th></tr>${rows.join("")}</table></div></div>`;
+}
 function groupTiles(ch, r){
-  const reveal = GRP.reveal, hiddenOK = r>=reveal;
-  const tT = totals(ch, doneCount(ch)), tH = totals(ch, hiddenOK ? Math.min(r-1,5) : 0);
-  const tile=(k,v,hidden,d)=>`<div class="tile ${hidden?"hid":""}"><div class="k">${k}</div><div class="v">${hidden?"?":v+"%"}</div><div class="d">${d||""}</div></div>`;
-  return `<div class="grid g4">${tile("Target attainment",tT.T,false,"visible from the start")}${tile("Team capacity",tH.C,!hiddenOK,hiddenOK?"as of the start of this day":"hidden for now")}${tile("Customer continuity",BASE.Co,!hiddenOK,"")}${tile("Team trust",tH.Tr,!hiddenOK,hiddenOK?"as of the start of this day":"hidden for now")}</div>`;
+  const reveal = GRP.reveal, hiddenOK = r>=reveal, k=doneCount(ch);
+  const tT = totals(ch, k), tH = totals(ch, hiddenOK ? Math.min(r-1,5) : 0), prevH = totals(ch, Math.max(0, r-2)), lastT = totals(ch, Math.max(0,k-1));
+  const dT = k>=1 ? tT.T-lastT.T : 0, dC = tH.C-prevH.C, dTr = tH.Tr-prevH.Tr;
+  const tile=(label,v,hidden,note,delta)=>`<div class="tile ${hidden?"hid":""}"><div class="k">${label}</div><div class="v">${hidden?"?":v+"%"}</div>${(!hidden && delta!==undefined)?`<div class="d ${dcls(delta)}">${arrow(delta)} ${delta===0?"no change":(delta>0?"+":"\u2212")+Math.abs(delta)} since the last day</div>`:`<div class="d">${note||""}</div>`}</div>`;
+  return `<div class="grid g4">${tile("Target attainment",tT.T,false,"visible from the start",k>=1?dT:undefined)}${tile("Team capacity",tH.C,!hiddenOK,"hidden for now",hiddenOK?dC:undefined)}${tile("Customer continuity",BASE.Co,!hiddenOK,"hidden for now",hiddenOK?0:undefined)}${tile("Team trust",tH.Tr,!hiddenOK,"hidden for now",hiddenOK?dTr:undefined)}</div>`;
 }
 function viewGroup(q){
   if(q.s){ GRP.session=q.s; GRP.reveal=+q.r||REVEAL_DEFAULT; GRP.codes=q.c!=="0"; if(q.g && !GRP.n) GRP.n=+q.g; saveGrp(); }
@@ -268,17 +285,22 @@ function viewGroup(q){
     <details><summary>Not updating? Enter the code instead</summary><div class="row" style="margin-top:8px"><input data-act="gcode" inputmode="numeric" maxlength="4" placeholder="4-digit code" size="8"><button class="btn" data-act="unlock">Open Day ${rd.day}</button></div><p class="note" id="gmsg"></p></details></div>`, "#/group");
   }
   const sel = GRP.pick;
-  return shell(`${top}${groupTiles(ch,r)}
+  return shell(`${top}${r===GRP.reveal?warnCard(ch,r):""}${groupTiles(ch,r)}
   <div class="card" style="margin-top:12px"><span class="pill">Day ${rd.day}</span><h2 style="margin-top:8px">${esc(rd.name)}</h2><p>${esc(rd.scenario)}</p><label>Choose ONE action</label>
   ${rd.options.map((o,i)=>`<button class="opt ${sel===LETTERS[i]?"sel":""}" data-act="pick" data-l="${LETTERS[i]}"><span class="l">${LETTERS[i]}</span><span>${esc(o.text)}</span></button>`).join("")}
-  <div class="row"><button class="btn" data-act="lock" ${sel?"":"disabled"}>Lock in our choice</button><span class="note">You will see the effect on the Target straight away. Other effects appear later.</span></div></div>`, "#/group");
+  <div class="row"><button class="btn" data-act="lock" ${sel?"":"disabled"}>Lock in our choice</button><span class="note">${r>=GRP.reveal?"You will see every effect straight away.":"You will see the effect on the Target straight away. Other effects appear later."}</span></div></div>`, "#/group");
 }
 function viewResult(){ /* shown right after locking a choice */
-  const ch=GRP.choices, i=doneCount(ch)-1, rd=DATA.rounds[i], o=rd.options[LETTERS.indexOf(ch[i])], t=totals(ch,i+1);
-  return shell(`<div class="card"><span class="pill">Day ${rd.day} · your choice ${ch[i]}</span><p style="margin:10px 0">${esc(o.text)}</p>
-   <div class="tile" style="max-width:320px"><div class="k">Target attainment</div><div class="v ${cls(o.target)}">${sgn(o.target)}%</div><div class="d">Target now ${t.T}%</div></div>
-   <p class="note" style="margin-top:12px">${GRP.sent&&GRP.sent[i+1]?"Sent to your facilitator ✓":"Not sent yet. If it stays like this, tell your facilitator the code "+toCode(GRP.n,ch)+"."} Capacity, Trust and Continuity are hidden for now${i+1<5?" and appear on Day 4 and after. Wait for the facilitator to open the next day.":". The final reveal is next."}</p>
-   <a class="btn" href="#/group" data-act="next">${i+1<5?"Continue":"Go to the final reveal"}</a></div>`, "#/group");
+  const ch=GRP.choices, i=doneCount(ch)-1, rd=DATA.rounds[i], o=rd.options[LETTERS.indexOf(ch[i])], b=totals(ch,i), t=totals(ch,i+1), all=(i+1)>=GRP.reveal;
+  const eff=(label,delta,from,to)=>`<div class="tile"><div class="k">${label}</div><div class="v ${dcls(delta)}">${arrow(delta)} ${delta>0?"+":(delta<0?"\u2212":"")}${Math.abs(delta)}%</div><div class="d">${delta===0?"no change":(delta>0?"increased":"decreased")} · ${from}% → ${to}%</div></div>`;
+  const next = i+1<5 ? "Wait for the facilitator to open the next day." : "The final reveal is next.";
+  const body = all
+    ? `<div class="grid g4">${eff("Target attainment",o.target,b.T,t.T)}${eff("Team capacity",o.capacity,b.C,t.C)}${eff("Team trust",o.trust,b.Tr,t.Tr)}${eff("Customer continuity",0,BASE.Co,BASE.Co)}</div>
+       <p class="note" style="margin-top:12px">${GRP.sent&&GRP.sent[i+1]?"Sent to your facilitator ✓":"Not sent yet. If it stays like this, tell your facilitator the code "+toCode(GRP.n,ch)+"."} You now see everything move as you decide. ${next}</p>`
+    : `<div class="tile" style="max-width:320px"><div class="k">Target attainment</div><div class="v ${cls(o.target)}">${sgn(o.target)}%</div><div class="d">Target now ${t.T}%</div></div>
+       <p class="note" style="margin-top:12px">${GRP.sent&&GRP.sent[i+1]?"Sent to your facilitator ✓":"Not sent yet. If it stays like this, tell your facilitator the code "+toCode(GRP.n,ch)+"."} Capacity, Trust and Continuity are hidden for now and appear from Day ${DATA.rounds[GRP.reveal-1]?DATA.rounds[GRP.reveal-1].day:"the end"}. ${next}</p>`;
+  return shell(`<div class="card"><span class="pill">Day ${rd.day} · your choice ${ch[i]}</span><p style="margin:10px 0">${esc(o.text)}</p>${body}
+   <a class="btn" href="#/group" data-act="next" style="margin-top:8px;display:inline-block">${i+1<5?"Continue":"Go to the final reveal"}</a></div>`, "#/group");
 }
 
 /* ---------- aftermath (1.1) ---------- */

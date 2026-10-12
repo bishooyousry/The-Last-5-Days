@@ -22,7 +22,7 @@ This keeps casual visitors out; it is not strong security, because the code is i
 2. Groups open the link, pick their **group number** and press **Join**. A green dot appears next to their group in your console.
 3. Press **Open Day 5**. Every group screen unlocks by itself and shows the situation and options A–D.
 4. A group chooses **one action** and presses **Lock in our choice**. It sees the effect on the **Target only**, and **its choice appears in your table by itself** (the cell flashes). You do not type anything.
-5. Press **Open Day 4** when you are ready. From Day 4, **Capacity, Trust and Continuity appear** on every group's screen, including the effect of the days already played. (You can move the reveal day in Setup.)
+5. Press **Open Day 4** when you are ready. Each group first sees a **"Watch out" warning**: its Day 5 choice also changed **Capacity** and **Trust**, with the exact movement (for example "Capacity decreased by 8 (75% → 67%)", "Trust increased by 3", or "did not change"). From then on **every effect of every choice is shown straight away** (Target, Capacity, Trust, Continuity, with arrows ↑ ↓), and the cards show how each number moved since the last day. (You can move the reveal day in Setup.)
 6. Continue to Day 3, Day 2, Day 1, then **Final reveal**: everything is visible and **Real Target** (the average of Target, Capacity and Trust) is shown.
 7. **Projector view** shows the room only what groups are allowed to see. Switch back to see every number.
 8. **Compare (1.1)** is the debrief screen. Groups continue to **Aftermath (1.1)**: a chart of their decisions, WHAT? SO WHAT? NOW WHAT?, and Keep / Stop / Start (one item each).
