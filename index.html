@@ -50,6 +50,10 @@ td.lab{text-align:left;font-weight:700;background:var(--ice)}
 .bar{display:flex;align-items:end;gap:6px;height:140px}.bar div{flex:1;border-radius:6px 6px 0 0;min-height:2px}
 details summary{cursor:pointer;font-weight:700}
 .proj table{font-size:26px}.proj th{font-size:18px}.proj td{padding:12px}
+.chip{display:inline-block;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;border:1px solid var(--line);background:#fff}
+.chip.live{background:#E3F6F2;border-color:var(--teal);color:var(--teal-d)}.chip.off{background:#FFF1EC;border-color:var(--coral);color:#B2401F}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);margin-left:6px;vertical-align:middle}
+td.fresh select{background:#E3F6F2;border-color:var(--teal)}
 @media(max-width:640px){.big{font-size:40px}h1{font-size:23px}main{padding:12px}}
 </style>
 </head>
@@ -62,6 +66,8 @@ const LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWgAAABzCAYAAAC1g5g5
 /* ===================== helpers ===================== */
 const BASE = {T: 82, C: 75, Tr: 75, Co: 80};
 const LETTERS = ["A","B","C","D"];
+const FAC_PIN = "2026";                         // code to open the facilitator pages (change it here if you want another one)
+const RELAY_DEFAULT = "https://ntfy.sh/";       // free public relay used for live sync between devices
 const REVEAL_DEFAULT = 2;                       // capacity / trust become visible when the group reaches round 2 (Day 4)
 const $ = (s, el=document) => el.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -92,10 +98,55 @@ function roundCode(session, r){ let h=5381; const s=(session||"").toUpperCase()+
 function copy(text, btn){ (navigator.clipboard?navigator.clipboard.writeText(text):Promise.reject()).catch(()=>{ const t=document.createElement("textarea"); t.value=text; document.body.appendChild(t); t.select(); try{document.execCommand("copy");}catch(e){} t.remove(); }).finally(()=>{ if(btn){ const o=btn.textContent; btn.textContent="Copied"; setTimeout(()=>btn.textContent=o,1200);} }); }
 
 /* ===================== state ===================== */
-let FAC = load("l5.fac", {session:"LAST5", groups:5, cur:1, reveal:REVEAL_DEFAULT, codes:true, proj:false, choices:{}});
-let GRP = load("l5.grp", {n:null, session:"", reveal:REVEAL_DEFAULT, codes:true, choices:[], unlocked:0, notes:{}});
+const randSession = () => { const a="ABCDEFGHJKMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<6;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; };
+let FAC = load("l5.fac", {session:randSession(), groups:5, cur:0, reveal:REVEAL_DEFAULT, codes:true, proj:false, choices:{}, online:{}});
+FAC.online = FAC.online || {};
+let GRP = load("l5.grp", {n:null, session:"", reveal:REVEAL_DEFAULT, codes:true, choices:[], unlocked:0, notes:{}, sent:{}});
+GRP.sent = GRP.sent || {};
 const saveFac = () => save("l5.fac", FAC), saveGrp = () => save("l5.grp", GRP);
 const facChoices = n => (FAC.choices[n] = FAC.choices[n] || [null,null,null,null,null]);
+
+/* ===================== live sync (free public relay: ntfy.sh) ===================== */
+const hash6 = s => { let h=5381; for(const c of String(s)) h=((h<<5)+h+c.charCodeAt(0))>>>0; return h.toString(36).padStart(6,"0").slice(-6); };
+const topicOf = s => "sb-l5-"+String(s||"").toLowerCase().replace(/[^a-z0-9]/g,"")+"-"+hash6("sb"+String(s||"").toUpperCase());
+function relayBase(){ const q=new URLSearchParams(location.search).get("relay")||new URLSearchParams((location.hash.split("?")[1])||"").get("relay")||RELAY_DEFAULT; return q.endsWith("/")?q:q+"/"; }
+const SYNC = {es:null, topic:"", last:null, status:"off", timer:null, session:"", role:"", seen:new Set()};
+function setStatus(st){ SYNC.status=st; const el=$("#syncchip"); if(el){ el.className="chip "+(st==="live"?"live":"off"); el.textContent=st==="live"?"Live sync: connected":(st==="connecting"?"Live sync: connecting…":"Live sync: offline (use the codes)"); } }
+function syncStop(){ if(SYNC.es){ SYNC.es.close(); SYNC.es=null; } clearTimeout(SYNC.timer); SYNC.status="off"; SYNC.session=""; SYNC.role=""; }
+function syncStart(session, role){
+  if(!session) return; if(SYNC.session===session && SYNC.role===role && (SYNC.es||SYNC.timer)) return;
+  syncStop(); SYNC.session=session; SYNC.role=role; SYNC.topic=topicOf(session); SYNC.last=null; SYNC.seen=new Set(); setStatus("connecting"); syncConnect();
+}
+function syncConnect(){
+  if(!SYNC.session) return;
+  const url=relayBase()+SYNC.topic+"/sse"+(SYNC.last?("?since="+SYNC.last):"?since=all");
+  let es; try{ es=new EventSource(url); }catch(e){ setStatus("off"); return; }
+  SYNC.es=es;
+  es.onopen=()=>{ SYNC.fail=0; setStatus("live"); };
+  es.onmessage=ev=>{ try{ const m=JSON.parse(ev.data); if(m.event && m.event!=="message") return; if(m.id){ if(SYNC.seen.has(m.id)) return; SYNC.seen.add(m.id); SYNC.last=m.id; } const p=JSON.parse(m.message); onSyncMessage(p); }catch(e){} };
+  es.onerror=()=>{ SYNC.fail=(SYNC.fail||0)+1; setStatus(SYNC.fail>=2?"off":"connecting"); try{es.close();}catch(e){} SYNC.es=null; SYNC.timer=setTimeout(syncConnect,2500); };
+}
+async function syncSend(p){ if(!SYNC.topic) return false; try{ const r=await fetch(relayBase()+SYNC.topic,{method:"POST",body:JSON.stringify(Object.assign({ts:Date.now()},p))}); return r.ok; }catch(e){ return false; } }
+let softTimer=null;
+function softRender(){ const a=document.activeElement; if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && $("#app").contains(a)){ clearTimeout(softTimer); softTimer=setTimeout(softRender,1500); return; } route(); }
+const FRESH = {};
+function onSyncMessage(p){
+  if(SYNC.role==="fac"){
+    if(p.t==="hello"){ FAC.online[p.g]=p.ts||1; }
+    else if(p.t==="choice" && p.g>=1 && p.g<=8){ if(p.g>FAC.groups) FAC.groups=p.g; facChoices(p.g)[p.r-1]=p.c; FRESH[p.g+"-"+(p.r-1)]=Date.now(); setTimeout(softRender,3300); }
+    else if(p.t==="set" && p.g>=1 && p.g<=8){ const c=fromCode("G"+p.g+"-"+p.ch); if(c) FAC.choices[p.g]=c.ch; }
+    else if(p.t==="cur"){ FAC.cur=p.cur; }
+    else return;
+    saveFac(); softRender();
+  } else if(SYNC.role==="group" && GRP.n){
+    if(p.t==="cur"){ GRP.cur=p.cur; GRP.unlocked=Math.max(GRP.unlocked,p.cur); }
+    else if(p.t==="settings"){ if(p.reveal) GRP.reveal=p.reveal; if(typeof p.codes==="boolean") GRP.codes=p.codes; }
+    else if(p.t==="set" && p.g===GRP.n){ const c=fromCode("G"+p.g+"-"+p.ch); if(c){ GRP.choices=c.ch; GRP.unlocked=Math.max(GRP.unlocked,doneCount(c.ch)); } }
+    else if(p.t==="choice" && p.g===GRP.n){ GRP.choices[p.r-1]=p.c; }
+    else return;
+    saveGrp(); softRender();
+  }
+}
 
 /* ===================== charts ===================== */
 function lineChart(ch){
@@ -125,23 +176,26 @@ function barChart(groups){
 function shell(inner, tab){
   let tabs=[["#/","Home"],["#/facilitator","Facilitator"],["#/compare","Compare (1.1)"],["#/group","Group"],["#/aftermath","Aftermath (1.1)"]];
   if(GRP.n && (tab==="#/group" || tab==="#/aftermath")) tabs=[["#/group","Group"],["#/aftermath","Aftermath (1.1)"]];   // group devices do not need the facilitator pages
-  return `<header class="top"><img src="${LOGO}" alt="Skills Bank"><div><div class="sub">Activity 1 · 1.1</div><div class="t">The Last 5 Days</div></div>
+  return `<header class="top"><img src="${LOGO}" alt="Skills Bank"><div class="t">The Last 5 Days</div>
   <nav>${tabs.map(([h,l])=>`<a href="${h}" class="${tab===h?"on":""}">${l}</a>`).join("")}</nav></header><main>${inner}</main>`;
 }
 
 function viewHome(){
   return shell(`<h1>The Last 5 Days</h1><p class="lead">An online version of Activity 1 (the simulation) and Activity 1.1 (The Performance Aftermath).</p>
   <div class="grid g2">
-   <div class="card"><h2>Facilitator</h2><p>Set up the session, open each day, enter or edit every group's choice and project the scoreboard. Capacity and Trust start appearing from Day 4.</p><a class="btn" href="#/facilitator">Open the console</a></div>
+   <div class="card"><h2>Facilitator</h2><p>Open each day, watch every group's choice arrive live, edit if needed and project the scoreboard. Capacity, Trust and Continuity appear from Day 4. A code is required.</p><a class="btn" href="#/facilitator">Open the console</a></div>
    <div class="card"><h2>Group</h2><p>Join with your group number and the session code. Choose one action per day.</p><a class="btn dark" href="#/group">Join as a group</a></div>
    <div class="card"><h2>Aftermath (1.1)</h2><p>After Day 1: see what happened, then answer WHAT? SO WHAT? NOW WHAT? and Keep / Stop / Start.</p><a class="btn sec" href="#/aftermath">Open the Aftermath</a></div>
   </div>`, "#/");
 }
 
 /* ---------- facilitator ---------- */
+function viewGate(target){
+  return shell(`<h1>Facilitator access</h1><div class="card" style="max-width:420px"><label>Facilitator code</label><div class="row"><input data-act="pin" type="password" inputmode="numeric" maxlength="8" size="10" autofocus><button class="btn" data-act="pinok" data-target="${target}">Open</button></div><p class="note" id="pinmsg"></p></div>`, "#/");
+}
 function facScore(proj){
   const groups = Array.from({length:FAC.groups},(_,i)=>i+1);
-  const showHidden = !proj || FAC.cur>=FAC.reveal;
+  const showHidden = !proj || (FAC.cur>=FAC.reveal);
   const rows = groups.map(n=>{
     const ch=facChoices(n), upToT=Math.min(FAC.cur,5), upToHidden = FAC.cur>5 ? 5 : FAC.cur-1;
     const tT = totals(ch, upToT), tH = totals(ch, Math.max(0,upToHidden)), full = totals(ch,5);
@@ -154,26 +208,26 @@ function facScore(proj){
   return `<div class="scroll"><table><tr><th></th><th>Target</th><th>Capacity</th><th>Trust</th><th>Continuity</th><th>Real Target</th><th>Days</th></tr>${rows}</table></div>`;
 }
 function viewFacilitator(){
-  const n=FAC.groups, cur=FAC.cur, day = cur<=5?"Day "+DATA.rounds[cur-1].day:"Final reveal";
+  const n=FAC.groups, cur=FAC.cur, day = (cur>=1&&cur<=5)?"Day "+DATA.rounds[cur-1].day:(cur===6?"Final reveal":"not started yet");
   const link = location.href.split("#")[0]+`#/group?s=${encodeURIComponent(FAC.session)}&r=${FAC.reveal}&c=${FAC.codes?1:0}`;
   const head = Array.from({length:5},(_,i)=>`<th>Day ${DATA.rounds[i].day}</th>`).join("");
   const body = Array.from({length:n},(_,gi)=>{
     const g=gi+1, ch=facChoices(g);
-    return `<tr><td class="lab">Group ${g}</td>${[0,1,2,3,4].map(i=>`<td><select data-act="cell" data-g="${g}" data-i="${i}"><option value="">—</option>${LETTERS.map(l=>`<option ${ch[i]===l?"selected":""}>${l}</option>`).join("")}</select></td>`).join("")}
+    return `<tr><td class="lab">Group ${g}${FAC.online[g]?'<span class="dot" title="joined"></span>':""}</td>${[0,1,2,3,4].map(i=>`<td class="${FRESH[g+"-"+i]&&Date.now()-FRESH[g+"-"+i]<3000?"fresh":""}"><select data-act="cell" data-g="${g}" data-i="${i}"><option value="">—</option>${LETTERS.map(l=>`<option ${ch[i]===l?"selected":""}>${l}</option>`).join("")}</select></td>`).join("")}
     <td><span class="code">${toCode(g,ch)}</span> <button class="btn sec sm" data-act="copycode" data-g="${g}">Copy</button></td></tr>`;
   }).join("");
   const key = DATA.rounds.map(r=>`<h3>Round ${r.n} · Day ${r.day} · ${esc(r.name)}</h3><table><tr><th>Option</th><th>Action</th><th>Target</th><th>Capacity</th><th>Trust</th></tr>${r.options.map((o,i)=>`<tr><td>${LETTERS[i]}</td><td style="text-align:left">${esc(o.text)}</td><td class="${cls(o.target)}">${sgn(o.target)}</td><td class="${cls(o.capacity)}">${sgn(o.capacity)}</td><td class="${cls(o.trust)}">${sgn(o.trust)}</td></tr>`).join("")}</table>`).join("");
-  const codeBlock = FAC.codes ? `<div class="card"><h2>Open the next day</h2><div class="row"><div><label>Day now open</label><select data-act="cur">${[1,2,3,4,5].map(r=>`<option value="${r}" ${cur===r?"selected":""}>Day ${DATA.rounds[r-1].day}</option>`).join("")}<option value="6" ${cur===6?"selected":""}>Final reveal</option></select></div>
-      ${cur<=5?`<div><label>Code to read out</label><div class="big code">${roundCode(FAC.session,cur)}</div></div>`:`<div class="callout">Final reveal: everything is visible. Go to Compare (1.1).</div>`}</div>
-      <p class="note">Groups enter this code to unlock the day. Capacity, Trust and Continuity become visible on a group's screen when it reaches Day ${DATA.rounds[FAC.reveal-1].day}.</p></div>` :
-    `<div class="card"><label>Day now open</label><select data-act="cur">${[1,2,3,4,5].map(r=>`<option value="${r}" ${cur===r?"selected":""}>Day ${DATA.rounds[r-1].day}</option>`).join("")}<option value="6" ${cur===6?"selected":""}>Final reveal</option></select></div>`;
-  return shell(`<h1>Facilitator console</h1><p class="lead">Now showing: <b>${day}</b>. You can edit any cell; groups can also send their own code.</p>
+  const openBtns = [1,2,3,4,5].map(r=>`<button class="btn ${cur===r?"":"sec"}" data-act="opencur" data-v="${r}">${cur===r?"Day "+DATA.rounds[r-1].day+" is open":"Open Day "+DATA.rounds[r-1].day}</button>`).join(" ")+` <button class="btn ${cur===6?"":"sec"}" data-act="opencur" data-v="6">${cur===6?"Final reveal is open":"Final reveal"}</button>`;
+  const codeBlock = `<div class="card"><h2>Open the days</h2><div class="row">${openBtns}</div>
+      ${(cur>=1&&cur<=5)?`<p style="margin-top:12px"><label>Backup code for Day ${DATA.rounds[cur-1].day} (only if a group is offline)</label><span class="big code">${roundCode(FAC.session,cur)}</span></p>`:`<p class="note" style="margin-top:12px">${cur===0?"Nothing is open yet. Press Open Day 5 when the groups are ready.":"Everything is visible. Open Compare (1.1) for the debrief."}</p>`}
+      <p class="note">Pressing a button opens that day on every group's screen. Capacity, Trust and Continuity become visible on a group's screen when it reaches Day ${DATA.rounds[FAC.reveal-1]?DATA.rounds[FAC.reveal-1].day:"the end"}.</p></div>`;
+  return shell(`<h1>Facilitator console</h1><p class="lead">Now showing: <b>${day}</b>. <span id="syncchip" class="chip"></span> Groups' choices arrive here by themselves. You can still edit any cell.</p>
   <div class="card"><details ${FAC.setup?"open":""}><summary>Setup and group link</summary><div class="row" style="margin-top:10px">
     <div><label>Groups</label><select data-act="groups">${[2,3,4,5,6,7,8].map(x=>`<option ${x===n?"selected":""}>${x}</option>`).join("")}</select></div>
     <div><label>Session code</label><input data-act="session" value="${esc(FAC.session)}" size="10"></div>
     <div><label>Capacity / Trust appear from</label><select data-act="reveal">${[2,3,4,5].map(r=>`<option value="${r}" ${FAC.reveal===r?"selected":""}>Day ${DATA.rounds[r-1].day}</option>`).join("")}<option value="6" ${FAC.reveal===6?"selected":""}>The final reveal</option></select></div>
-    <div><label>Round codes</label><select data-act="codes"><option value="1" ${FAC.codes?"selected":""}>On</option><option value="0" ${!FAC.codes?"selected":""}>Off</option></select></div></div>
-    <p class="note" style="margin-top:10px">There is no live connection between devices: each group works on its own screen and sends you its code (the Copy button), or you type its choices in the grid. Everything is saved in the browser of the device you use. The hidden effects are part of the page code, so treat this as a classroom tool, not a secure exam.</p>
+    <div><label>Days locked until you open them</label><select data-act="codes"><option value="1" ${FAC.codes?"selected":""}>Yes</option><option value="0" ${!FAC.codes?"selected":""}>No (groups move freely)</option></select></div><button class="btn sec sm" data-act="newsession">New session code</button></div>
+    <p class="note" style="margin-top:10px">Live sync uses the free public relay ntfy.sh with a private topic made from your session code, so use a new session code for every session. If a group is offline it can still send you its code (Copy) and you paste it below. Everything is saved in the browser of the device in use. The hidden effects are part of the page code, so treat this as a classroom tool, not a secure exam.</p>
     <p style="margin-top:10px"><label>Link to send to the groups</label><span class="code" style="word-break:break-all">${esc(link)}</span> <button class="btn sec sm" data-act="copylink">Copy</button></p></details></div>
   ${codeBlock}
   <div class="card"><h2>Choices</h2><div class="scroll"><table><tr><th></th>${head}<th>Group code</th></tr>${body}</table></div>
@@ -200,7 +254,7 @@ function viewGroup(q){
   }
   const ch=GRP.choices, r=Math.min(doneCount(ch)+1, 6), code=toCode(GRP.n,ch);
   const top=`<div class="card"><div class="row" style="justify-content:space-between"><div><span class="pill">Group ${GRP.n}</span> <span class="pill t">${r<=5?"Day "+DATA.rounds[r-1].day+" · round "+r+" of 5":"Final reveal"}</span></div>
-   <div>Our code <span class="code">${code}</span> <button class="btn sec sm" data-act="gcopy">Copy</button> <button class="btn sec sm" data-act="gsync">Sync code</button> <button class="btn sec sm" data-act="gleave">Leave</button></div></div></div>`;
+   <div><span id="syncchip" class="chip"></span> Our code <span class="code">${code}</span> <button class="btn sec sm" data-act="gcopy">Copy</button> <button class="btn sec sm" data-act="gsync">Sync code</button> <button class="btn sec sm" data-act="gleave">Leave</button></div></div></div>`;
   if(r>5){
     const t=totals(ch,5);
     return shell(`${top}<h1>Final reveal</h1><p class="lead">Here is what really happened.</p>
@@ -210,8 +264,8 @@ function viewGroup(q){
   }
   const rd=DATA.rounds[r-1], needCode = GRP.codes && GRP.unlocked<r;
   if(needCode){
-    return shell(`${top}${groupTiles(ch,r)}<div class="card" style="margin-top:12px"><h2>${r===1?"Waiting for the facilitator":"Day "+rd.day+" is locked"}</h2><p>Enter the code your facilitator gives you to open Day ${rd.day}.</p>
-    <div class="row"><input data-act="gcode" inputmode="numeric" maxlength="4" placeholder="4-digit code" size="8"><button class="btn" data-act="unlock">Open Day ${rd.day}</button></div><p class="note" id="gmsg"></p></div>`, "#/group");
+    return shell(`${top}${groupTiles(ch,r)}<div class="card" style="margin-top:12px"><h2>${r===1?"Waiting for the facilitator":"Day "+rd.day+" is locked"}</h2><p>Your facilitator will open Day ${rd.day} for everyone. This screen updates by itself.</p>
+    <details><summary>Not updating? Enter the code instead</summary><div class="row" style="margin-top:8px"><input data-act="gcode" inputmode="numeric" maxlength="4" placeholder="4-digit code" size="8"><button class="btn" data-act="unlock">Open Day ${rd.day}</button></div><p class="note" id="gmsg"></p></details></div>`, "#/group");
   }
   const sel = GRP.pick;
   return shell(`${top}${groupTiles(ch,r)}
@@ -223,7 +277,7 @@ function viewResult(){ /* shown right after locking a choice */
   const ch=GRP.choices, i=doneCount(ch)-1, rd=DATA.rounds[i], o=rd.options[LETTERS.indexOf(ch[i])], t=totals(ch,i+1);
   return shell(`<div class="card"><span class="pill">Day ${rd.day} · your choice ${ch[i]}</span><p style="margin:10px 0">${esc(o.text)}</p>
    <div class="tile" style="max-width:320px"><div class="k">Target attainment</div><div class="v ${cls(o.target)}">${sgn(o.target)}%</div><div class="d">Target now ${t.T}%</div></div>
-   <p class="note" style="margin-top:12px">Capacity, Trust and Continuity are hidden for now. ${i+1<5?"Wait for the facilitator to open the next day.":"The final reveal is next."}</p>
+   <p class="note" style="margin-top:12px">${GRP.sent&&GRP.sent[i+1]?"Sent to your facilitator ✓":"Not sent yet. If it stays like this, tell your facilitator the code "+toCode(GRP.n,ch)+"."} Capacity, Trust and Continuity are hidden for now${i+1<5?" and appear on Day 4 and after. Wait for the facilitator to open the next day.":". The final reveal is next."}</p>
    <a class="btn" href="#/group" data-act="next">${i+1<5?"Continue":"Go to the final reveal"}</a></div>`, "#/group");
 }
 
@@ -262,46 +316,54 @@ function viewCompare(){
 
 /* ===================== router + events ===================== */
 let SHOW_RESULT=false;
+const facOK = () => sessionStorage.getItem("l5.ok")==="1";
 function route(){
   const raw=location.hash||"#/"; const [path,qs]=raw.split("?"); const q=Object.fromEntries(new URLSearchParams(qs||""));
   let html;
+  if((path==="#/facilitator"||path==="#/compare") && !facOK()){ syncStop(); $("#app").innerHTML=viewGate(path); const i=$("[data-act=pin]"); if(i) i.focus(); return; }
+  if(path==="#/facilitator"||path==="#/compare") syncStart(FAC.session,"fac");
+  else if((path==="#/group"||path==="#/aftermath") && GRP.n && GRP.session) syncStart(GRP.session,"group");
+  else syncStop();
   if(path==="#/facilitator") html=viewFacilitator();
   else if(path==="#/group") html=SHOW_RESULT && GRP.n && doneCount(GRP.choices)>0 ? viewResult() : viewGroup(q);
   else if(path==="#/aftermath") html=viewAftermath();
   else if(path==="#/compare") html=viewCompare();
   else html=viewHome();
-  $("#app").innerHTML=html;
+  $("#app").innerHTML=html; setStatus(SYNC.status);
 }
 window.addEventListener("hashchange",()=>{ SHOW_RESULT=false; route(); });
 document.addEventListener("click",e=>{
   const b=e.target.closest("[data-act]"); if(!b) return; const a=b.dataset.act;
   if(a==="copycode"){ copy(toCode(+b.dataset.g, facChoices(+b.dataset.g)), b); return; }
   if(a==="copylink"){ copy($(".code[style*='break-all']").textContent, b); return; }
+  if(a==="opencur"){ FAC.cur=+b.dataset.v; saveFac(); route(); syncSend({t:"cur",cur:FAC.cur}); syncSend({t:"settings",reveal:FAC.reveal,codes:FAC.codes}); return; }
+  if(a==="pinok"){ if($("[data-act=pin]").value.trim()===FAC_PIN){ sessionStorage.setItem("l5.ok","1"); location.hash=b.dataset.target; route(); } else $("#pinmsg").textContent="Wrong code."; return; }
+  if(a==="newsession"){ if(confirm("Create a new session code? Groups will need the new link.")){ FAC.session=randSession(); saveFac(); syncStop(); route(); } return; }
   if(a==="proj"){ FAC.proj=!FAC.proj; saveFac(); route(); return; }
-  if(a==="apply"){ const lines=$("[data-act=paste]").value.split(/\n/); let ok=0; lines.forEach(l=>{const c=fromCode(l); if(c && c.n>=1 && c.n<=8){ FAC.groups=Math.max(FAC.groups,c.n); FAC.choices[c.n]=c.ch; ok++; }}); saveFac(); route(); if(!ok) alert("No valid codes found. Use the form G3-BCA."); return; }
+  if(a==="apply"){ const lines=$("[data-act=paste]").value.split(/\n/); let ok=0; lines.forEach(l=>{const c=fromCode(l); if(c && c.n>=1 && c.n<=8){ FAC.groups=Math.max(FAC.groups,c.n); FAC.choices[c.n]=c.ch; ok++; }}); saveFac(); route(); if(!ok) alert("No valid codes found. Use the form G3-BCA."); else Object.keys(FAC.choices).forEach(g=>syncSend({t:"set",g:+g,ch:FAC.choices[g].map(x=>x||"-").join("")})); return; }
   if(a==="export"){ copy(JSON.stringify(FAC), b); return; }
-  if(a==="reset"){ if(confirm("Reset the whole facilitator session?")){ FAC={session:"LAST5",groups:5,cur:1,reveal:REVEAL_DEFAULT,codes:true,proj:false,choices:{}}; saveFac(); route(); } return; }
-  if(a==="join"){ const n=+$("[data-act=gnum]").value, s=$("[data-act=gsession]").value.trim(); if(!s){ alert("Enter the session code."); return; } GRP={n,session:s,reveal:GRP.reveal||REVEAL_DEFAULT,codes:GRP.codes!==false,choices:[],unlocked:0,notes:{}}; saveGrp(); route(); return; }
+  if(a==="reset"){ if(confirm("Reset the whole facilitator session? A new session code is created.")){ FAC={session:randSession(),groups:5,cur:1,reveal:REVEAL_DEFAULT,codes:true,proj:false,choices:{},online:{}}; saveFac(); syncStop(); route(); } return; }
+  if(a==="join"){ const n=+$("[data-act=gnum]").value, s=$("[data-act=gsession]").value.trim(); if(!s){ alert("Enter the session code."); return; } GRP={n,session:s,reveal:GRP.reveal||REVEAL_DEFAULT,codes:GRP.codes!==false,choices:[],unlocked:0,notes:{},sent:{}}; saveGrp(); route(); syncSend({t:"hello",g:n}); return; }
   if(a==="gcopy"){ copy(toCode(GRP.n,GRP.choices), b); return; }
   if(a==="gleave"){ if(confirm("Leave this group and clear your choices on this device?")){ GRP={n:null,session:GRP.session,reveal:GRP.reveal,codes:GRP.codes,choices:[],unlocked:0,notes:{}}; saveGrp(); route(); } return; }
   if(a==="gsync"){ const s=prompt("Paste the code from your facilitator (like G3-BCA):"); const c=fromCode(s); if(c){ GRP.choices=c.ch; GRP.unlocked=Math.max(GRP.unlocked,doneCount(c.ch)+(GRP.codes?0:1)); saveGrp(); route(); } else if(s) alert("That code is not valid."); return; }
   if(a==="unlock"){ const r=doneCount(GRP.choices)+1, v=$("[data-act=gcode]").value.trim(); if(!GRP.codes || v===roundCode(GRP.session,r)){ GRP.unlocked=r; saveGrp(); route(); } else $("#gmsg").textContent="That code is not right. Check with your facilitator."; return; }
   if(a==="pick"){ GRP.pick=b.dataset.l; saveGrp(); route(); return; }
-  if(a==="lock"){ const i=doneCount(GRP.choices); GRP.choices[i]=GRP.pick; GRP.pick=null; saveGrp(); SHOW_RESULT=true; route(); return; }
+  if(a==="lock"){ const i=doneCount(GRP.choices); GRP.choices[i]=GRP.pick; const letter=GRP.pick; GRP.pick=null; saveGrp(); SHOW_RESULT=true; route(); syncSend({t:"choice",g:GRP.n,r:i+1,c:letter}).then(ok=>{ GRP.sent=GRP.sent||{}; GRP.sent[i+1]=!!ok; saveGrp(); if(SHOW_RESULT) route(); }); return; }
   if(a==="next"){ e.preventDefault(); SHOW_RESULT=false; route(); return; }
   if(a==="copynotes"){ const N=GRP.notes; copy(`Group ${GRP.n}\nWHAT?\n${N.what||""}\n\nSO WHAT?\n${N.sowhat||""}\n\nNOW WHAT?\n${N.nowwhat||""}\n\nKEEP: ${N.keep||""}\nSTOP: ${N.stop||""}\nSTART: ${N.start||""}`, b); return; }
 });
 document.addEventListener("change",e=>{
   const el=e.target.closest("[data-act]"); if(!el) return; const a=el.dataset.act;
-  if(a==="cell"){ facChoices(+el.dataset.g)[+el.dataset.i]=el.value||null; saveFac(); route(); }
-  else if(a==="cur"){ FAC.cur=+el.value; saveFac(); route(); }
+  if(a==="cell"){ const g=+el.dataset.g; facChoices(g)[+el.dataset.i]=el.value||null; saveFac(); route(); syncSend({t:"set",g,ch:facChoices(g).map(x=>x||"-").join("")}); }
   else if(a==="groups"){ FAC.groups=+el.value; saveFac(); route(); }
-  else if(a==="session"){ FAC.session=el.value.trim()||"LAST5"; saveFac(); route(); }
-  else if(a==="reveal"){ FAC.reveal=+el.value; saveFac(); route(); }
-  else if(a==="codes"){ FAC.codes=el.value==="1"; saveFac(); route(); }
+  else if(a==="session"){ FAC.session=el.value.trim()||randSession(); saveFac(); syncStop(); route(); }
+  else if(a==="reveal"){ FAC.reveal=+el.value; saveFac(); route(); syncSend({t:"settings",reveal:FAC.reveal,codes:FAC.codes}); }
+  else if(a==="codes"){ FAC.codes=el.value==="1"; saveFac(); route(); syncSend({t:"settings",reveal:FAC.reveal,codes:FAC.codes}); }
 });
+document.addEventListener("keydown",e=>{ if(e.key==="Enter" && e.target.matches("[data-act=pin]")) $("[data-act=pinok]").click(); });
 document.addEventListener("input",e=>{ const el=e.target.closest("[data-act=note]"); if(el){ GRP.notes[el.dataset.k]=el.value; saveGrp(); } });
-window.L5 = {totals, toCode, fromCode, roundCode, DATA, get FAC(){return FAC;}, get GRP(){return GRP;}};
+window.L5 = {totals, toCode, fromCode, roundCode, topicOf, DATA, get FAC(){return FAC;}, get GRP(){return GRP;}, get SYNC(){return SYNC;}};
 route();
 </script>
 </body>
