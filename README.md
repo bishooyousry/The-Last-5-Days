@@ -38,7 +38,7 @@ You can still **edit any cell** in the table. The change is sent to that group's
 - Devices set to "reduce motion" get no animations or splash, only the content.
 
 ## Sound effects
-Sound uses short synthesized sounds (no files). It is **on by default on group screens** (after the first tap, as browsers require) and **off by default on the facilitator pages**. The **Sound on / Sound off** button in the top bar changes it for that device and is remembered.
+Sound uses short synthesized sounds (no files) and is **on by default on every screen**, including the facilitator console. Browsers only allow sound after the first tap or click on the page, so the first sound plays after that first tap. The **Sound on / Sound off** button in the top bar turns it off for that device and the choice is remembered (press it again to turn it back on).
 - **Taps and choices:** a soft click on every button, a different note for options A, B, C and D, a "lock" thud-and-chime when the choice is locked.
 - **Countdown:** a whoosh, a boom and **one tick for every day left** when a stage opens (5 ticks for 5 Days, 1 for 1 Day).
 - **Warning (4 Days):** a siren with a low rumble, then a "flip" sparkle for each tile that unlocks.
