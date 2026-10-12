@@ -20,7 +20,7 @@ main{max-width:1180px;margin:0 auto;padding:18px}
 h1{font-size:28px;margin:6px 0 4px}h2{font-size:20px;margin:0 0 8px}h3{font-size:15px;margin:0 0 6px}
 .lead{color:var(--muted);margin:0 0 14px}
 .card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:16px;margin:0 0 14px;box-shadow:0 2px 8px rgba(8,8,40,.05)}
-.grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.g3{grid-template-columns:repeat(3,1fr)}@media(max-width:480px){.g3 .tile{padding:10px 6px}.g3 .tile .v{font-size:27px}.g3 .tile .k{font-size:10px;letter-spacing:.05em}.g3 .tile .d{font-size:11px}}
 .btn{appearance:none;border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer;background:var(--teal);color:var(--navy)}
 .btn.sec{background:var(--white);border:1px solid var(--line);color:var(--navy)}
 .btn.dark{background:var(--navy);color:#fff}.btn.sm{padding:6px 10px;font-size:13px}.btn:disabled{opacity:.45;cursor:not-allowed}
@@ -324,15 +324,15 @@ function viewGate(target){
 }
 function facScore(proj){
   const groups = Array.from({length:FAC.groups},(_,i)=>i+1);
-  const revealed = !proj || (FAC.cur>=FAC.reveal), final = !proj || FAC.cur>5;     // projector: Capacity / Trust only exist from the reveal day, Real Target from the final reveal
+  const final = !proj || FAC.cur>5;                      // Real Target only appears at the final reveal on the projector
   const cell=(key,v,bold)=>(v==="—") ? `<span>${v}</span>` : `${bold?"<b>":""}${cntQ(key,v)}${bold?"</b>":""}`;
+  const upToHidden = (FAC.cur>=FAC.reveal) ? (FAC.cur>5 ? 5 : FAC.cur-1) : 0;   // Capacity / Trust keep their starting numbers until the reveal day
   const rows = groups.map(n=>{
-    const ch=facChoices(n), upToT=Math.min(FAC.cur,5), upToHidden = FAC.cur>5 ? 5 : FAC.cur-1;
-    const tT = totals(ch, upToT), tH = totals(ch, Math.max(0,upToHidden)), full = totals(ch,5);
+    const ch=facChoices(n), tT = totals(ch, Math.min(FAC.cur,5)), tH = totals(ch, Math.max(0,upToHidden)), full = totals(ch,5);
     const T = proj ? tT.T : full.T, C = proj ? tH.C : full.C, Tr = proj ? tH.Tr : full.Tr, R = proj ? full.R : (doneCount(ch)?full.R:"—");
-    return `<tr><td class="lab">Group ${n}</td><td>${cell("f"+n+"T",T,true)}</td>${revealed?`<td>${cell("f"+n+"C",C)}</td><td>${cell("f"+n+"Tr",Tr)}</td>`:""}${final?`<td>${cell("f"+n+"R",R,true)}</td>`:""}<td class="note">${doneCount(ch)}/5</td></tr>`;
+    return `<tr><td class="lab">Group ${n}</td><td>${cell("f"+n+"T",T,true)}</td><td>${cell("f"+n+"C",C)}</td><td>${cell("f"+n+"Tr",Tr)}</td>${final?`<td>${cell("f"+n+"R",R,true)}</td>`:""}<td class="note">${doneCount(ch)}/5</td></tr>`;
   }).join("");
-  return `<div class="scroll"><table><tr><th></th><th>Target</th>${revealed?"<th>Capacity</th><th>Trust</th>":""}${final?"<th>Real Target</th>":""}<th>Played</th></tr>${rows}</table></div>`;
+  return `<div class="scroll"><table><tr><th></th><th>Target</th><th>Capacity</th><th>Trust</th>${final?"<th>Real Target</th>":""}<th>Played</th></tr>${rows}</table></div>`;
 }
 function viewFacilitator(){
   const n=FAC.groups, cur=FAC.cur, day = (cur>=1&&cur<=5)?dlabel(DATA.rounds[cur-1].day):(cur===6?"Final reveal":"not started yet");
@@ -360,7 +360,7 @@ function viewFacilitator(){
   <div class="card"><h2>Choices</h2><div class="scroll"><table><tr><th></th>${head}<th>Group code</th></tr>${body}</table></div>
    <div class="row" style="margin-top:10px"><div style="flex:1;min-width:240px"><label>Paste group codes (one per line, like G3-BCA)</label><textarea data-act="paste" placeholder="G1-CDA&#10;G2-BCB"></textarea></div><button class="btn" data-act="apply">Apply codes</button></div></div>
   <div class="card ${FAC.proj?"proj":""}"><div class="row" style="justify-content:space-between"><h2>Scoreboard ${FAC.proj?"(what the room sees)":"(facilitator: all numbers)"}</h2><button class="btn ${FAC.proj?"dark":"sec"} sm" data-act="proj">${FAC.proj?"Switch to facilitator view":"Projector view"}</button></div>${facScore(FAC.proj)}
-   <p class="note">Real Target = average of Target, Capacity and Trust. In the room view, Target shows after each day's choice; Capacity and Trust show from ${DATA.rounds[FAC.reveal-1]?dlabel(DATA.rounds[FAC.reveal-1].day):"the end"} and include the days already played.</p></div>
+   <p class="note">Real Target = average of Target, Capacity and Trust. In the room view, Target shows after each day's choice; Capacity and Trust keep their starting numbers and start to move when ${DATA.rounds[FAC.reveal-1]?dlabel(DATA.rounds[FAC.reveal-1].day):"the end"} are left, including the days already played.</p></div>
   <div class="card"><details><summary>Effects key (facilitator only)</summary>${key}</details></div>
   <div class="row"><button class="btn sec sm" data-act="export">Export session</button><button class="btn sec sm" data-act="reset">Reset session</button></div>`, "#/facilitator");
 }
@@ -390,14 +390,21 @@ function warnCard(ch, r){
   const head = n===1 ? `Watch out: your choice with ${dlabel(DATA.rounds[0].day)} left also changed things you could not see.` : "Watch out: your earlier choices also changed things you could not see.";
   return `<div class="warn ${ANIM_NOW?"alert":""}"><h2><span class="bang">!</span>${head}</h2><p style="margin:0 0 8px">Until now you only saw the Target. Here is what those choices did to <b>Capacity</b> and <b>Trust</b>. From now on you will see everything move as you decide.</p><div class="scroll"><table><tr><th></th><th>Capacity</th><th>Trust</th></tr>${rows.join("")}</table></div></div>`;
 }
+function briefing(){
+  return `<div class="card"><h2>Your situation</h2>
+    <p class="lead2" style="font-size:19px;font-weight:700;margin:0 0 10px">Your sales team is at <b>${BASE.T}%</b> of the quarterly target. There are only <b>5 working days</b> left. Senior management expects recovery before quarter close.</p>
+    <label>Your team · 6 salespeople</label>
+    <div class="row" style="gap:8px;margin-bottom:12px"><span class="pill">2 Top Performers</span><span class="pill">2 Core Performers</span><span class="pill">2 Struggling Performers</span></div>
+    <p style="margin:0;font-weight:700">…and your scores right now:</p></div>`;
+}
 function groupTiles(ch, r){
   const reveal = GRP.reveal, hiddenOK = r>=reveal, k=doneCount(ch);
   const tT = totals(ch, k), tH = totals(ch, hiddenOK ? Math.min(r-1,5) : 0), prevH = totals(ch, Math.max(0, r-2)), lastT = totals(ch, Math.max(0,k-1));
   const dT = k>=1 ? tT.T-lastT.T : 0, dC = tH.C-prevH.C, dTr = tH.Tr-prevH.Tr;
   const first = hiddenOK && r===reveal && ANIM_NOW;
   const tile=(idx,label,key,v,from,hidden,note,delta)=>`<div class="tile ${hidden?"hid":""} ${(first&&idx>0)?"unlock":""}" ${(first&&idx>0)?`style="animation-delay:${(idx*0.22).toFixed(2)}s"`:""}><div class="k">${label}</div><div class="v">${hidden?"?":cnt(key,v,from)}</div>${(!hidden && delta!==undefined)?`<div class="d ${dcls(delta)}">${arrow(delta)} ${delta===0?"no change":(delta>0?"+":"\u2212")+Math.abs(delta)} since the last day</div>`:`<div class="d">${note||""}</div>`}</div>`;
-  if(!hiddenOK) return `<div class="grid g4">${tile(0,"Target attainment","gT",tT.T,lastT.T,false,"",k>=1?dT:undefined)}</div>`;   // nothing else exists yet, as far as the group knows
-  return `<div class="grid g4">${tile(0,"Target attainment","gT",tT.T,lastT.T,false,"visible from the start",k>=1?dT:undefined)}${tile(1,"Team capacity","gC",tH.C,prevH.C,false,"",dC)}${tile(2,"Team trust","gTr",tH.Tr,prevH.Tr,false,"",dTr)}</div>`;
+  if(!hiddenOK) return `<div class="grid g3">${tile(0,"Target attainment","gT",tT.T,lastT.T,false,"",k>=1?dT:undefined)}${tile(1,"Team capacity","gC",tH.C,tH.C,false,"")}${tile(2,"Team trust","gTr",tH.Tr,tH.Tr,false,"")}</div>`;   // the scores are known from the case; their changes stay unseen until the reveal day
+  return `<div class="grid g3">${tile(0,"Target attainment","gT",tT.T,lastT.T,false,"visible from the start",k>=1?dT:undefined)}${tile(1,"Team capacity","gC",tH.C,prevH.C,false,"",dC)}${tile(2,"Team trust","gTr",tH.Tr,prevH.Tr,false,"",dTr)}</div>`;
 }
 function viewGroup(q){
   if(q.s){ GRP.session=q.s; GRP.reveal=+q.r||REVEAL_DEFAULT; GRP.codes=q.c!=="0"; if(q.g && !GRP.n) GRP.n=+q.g; saveGrp(); }
@@ -413,13 +420,13 @@ function viewGroup(q){
     const t=totals(ch,5);
     const ft=(i,label,key,v,from)=>`<div class="tile ${ANIM_NOW?"stagger":""}" style="animation-delay:${(i*0.45).toFixed(2)}s"><div class="k">${label}</div><div class="v">${cntQ(key,v,from)}</div></div>`;
     return shell(`${top}<h1>Final reveal</h1><p class="lead">Here is what really happened.</p>
-    <div class="grid g4">${ft(0,"Target","fT",t.T,BASE.T)}${ft(1,"Capacity","fC",t.C,BASE.C)}${ft(2,"Trust","fTr",t.Tr,BASE.Tr)}</div>
+    <div class="grid g3">${ft(0,"Target","fT",t.T,BASE.T)}${ft(1,"Capacity","fC",t.C,BASE.C)}${ft(2,"Trust","fTr",t.Tr,BASE.Tr)}</div>
     <div class="callout ${ANIM_NOW?"stagger":""}" style="margin:12px 0;animation-delay:1.6s">Real Target (average of Target, Capacity and Trust): ${cntQ("fR",t.R,0)}<div class="gauge"><i data-w="${Math.min(100,t.R)}"></i></div></div>
     <a class="btn" href="#/aftermath">Continue to the Aftermath (1.1)</a>`, "#/group");
   }
   const rd=DATA.rounds[r-1], needCode = GRP.codes && GRP.unlocked<r;
   if(needCode){
-    return shell(`${top}${groupTiles(ch,r)}<div class="card" style="margin-top:12px"><h2>${r===1?"Waiting for the facilitator":"Next up: "+dlabel(rd.day)}</h2><p>Your facilitator will open ${dlabel(rd.day)} for everyone. This screen updates by itself.</p>
+    return shell(`${top}${r===1?briefing():""}${groupTiles(ch,r)}<div class="card" style="margin-top:12px"><h2>${r===1?"Waiting for the facilitator":"Next up: "+dlabel(rd.day)}</h2><p>Your facilitator will open ${dlabel(rd.day)} for everyone. This screen updates by itself.</p>
     <details><summary>Not updating? Enter the code instead</summary><div class="row" style="margin-top:8px"><input data-act="gcode" inputmode="numeric" maxlength="4" placeholder="4-digit code" size="8"><button class="btn" data-act="unlock">Open ${dlabel(rd.day)}</button></div><p class="note" id="gmsg"></p></details></div>`, "#/group");
   }
   const sel = GRP.pick;
@@ -436,7 +443,7 @@ function viewResult(){ /* shown right after locking a choice */
   const next = i+1<5 ? "Wait for the facilitator to open the next day." : "The final reveal is next.";
   const sent = `<span id="sentnote">${sentText(i,ch)}</span>`;
   const body = all
-    ? `<div class="grid g4">${eff(0,"Target attainment","T",o.target,b.T,t.T)}${eff(1,"Team capacity","C",o.capacity,b.C,t.C)}${eff(2,"Team trust","Tr",o.trust,b.Tr,t.Tr)}</div>
+    ? `<div class="grid g3">${eff(0,"Target attainment","T",o.target,b.T,t.T)}${eff(1,"Team capacity","C",o.capacity,b.C,t.C)}${eff(2,"Team trust","Tr",o.trust,b.Tr,t.Tr)}</div>
        <p class="note" style="margin-top:12px">${sent} You now see everything move as you decide. ${next}</p>`
     : `<div style="max-width:320px">${(()=>{ const d=o.target; return `<div ${st(0)} data-fx="${d>0?"pos":(d<0?"neg":"zero")}"><div class="k">Target attainment</div><div class="v ${cls(d)}">${arrow(d)} ${cntQ("r"+i+"T",Math.abs(d),0,d>0?"+":(d<0?"\u2212":""),"%")}</div><div class="d">Target now ${t.T}%</div></div>`; })()}</div>
        <p class="note" style="margin-top:12px">${sent} ${next}</p>`;
