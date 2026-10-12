@@ -29,6 +29,15 @@ This keeps casual visitors out; it is not strong security, because the code is i
 
 You can still **edit any cell** in the table. The change is sent to that group's screen.
 
+## Game feel
+- Each day opens with a full-screen **DAY splash** (Day 4 has a warmer "the numbers you could not see are about to move" splash), and screens slide in.
+- A **progress track** (D5 → D1) fills as the group plays.
+- Numbers **count up or down** to their new value and flash green or coral. On Day 4 the hidden tiles **flip open**, and the "Watch out" card drops in with a pulse.
+- After **Lock in** a stamp appears and the effects pop in one by one. The **Final reveal** shows the four scores in sequence and fills the Real Target bar.
+- Facilitator console: a **toast** appears when a group joins or locks a choice, and scoreboard numbers move when they change.
+- **Sound** is optional and **off by default**: press **Sound off** in the top bar (each device has its own switch). Short beeps for picking, locking, a new day, the warning and the reveal.
+- Devices set to "reduce motion" get no animations or splash, only the content.
+
 ## How the live connection works
 A website on GitHub has no server, so the app sends tiny messages (group number, day, letter) through the **free public relay ntfy.sh**, on a private topic built from your session code. Because of that:
 - Use a **new session code for every session** (anyone who knows the code could read or send messages for that session).

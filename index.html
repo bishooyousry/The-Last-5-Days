@@ -54,6 +54,48 @@ details summary{cursor:pointer;font-weight:700}
 .warn h2{margin:0 0 6px;display:flex;align-items:center;gap:10px}.warn .bang{flex:none;width:28px;height:28px;border-radius:50%;background:var(--coral);color:#fff;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
 .warn table td,.warn table th{font-size:14px}.up{color:var(--teal-d);font-weight:700}.down{color:var(--coral);font-weight:700}
 .tile .d.up,.tile .d.down{font-size:14px}
+/* ---- game feel ---- */
+.enter{animation:enter .38s cubic-bezier(.2,.8,.2,1) both}
+@keyframes enter{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.btn,.opt,.tile{transition:transform .15s ease,box-shadow .15s ease,background .2s,border-color .2s}
+.btn:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(8,8,40,.18)}.btn:not(:disabled):active{transform:scale(.97)}
+.opt:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(8,8,40,.12);border-color:var(--teal)}
+.opt.sel{animation:pop .3s ease}
+@keyframes pop{0%{transform:scale(.97)}60%{transform:scale(1.025)}100%{transform:scale(1)}}
+.btn.go:not(:disabled){animation:glow 1.6s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(64,189,169,.55)}50%{box-shadow:0 0 0 10px rgba(64,189,169,0)}}
+.stagger{opacity:0;animation:rise .55s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes rise{from{opacity:0;transform:translateY(18px) scale(.95)}to{opacity:1;transform:none}}
+.unlock,.flip{animation:flipIn .75s cubic-bezier(.2,.8,.2,1) both}
+@keyframes flipIn{0%{opacity:0;transform:perspective(600px) rotateY(-90deg) scale(.9)}60%{opacity:1;transform:perspective(600px) rotateY(12deg)}100%{opacity:1;transform:perspective(600px) rotateY(0)}}
+.tile.unlock{position:relative;overflow:hidden}
+.tile.unlock::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.8) 50%,transparent 70%);transform:translateX(-120%);animation:shine 1s .6s ease forwards}
+@keyframes shine{to{transform:translateX(120%)}}
+.warn.alert{animation:slideDown .5s cubic-bezier(.2,.8,.2,1) both,glowRed 1.2s .5s ease-in-out 3}
+@keyframes slideDown{from{opacity:0;transform:translateY(-26px)}to{opacity:1;transform:none}}
+@keyframes glowRed{0%,100%{box-shadow:0 0 0 0 rgba(242,106,68,0)}50%{box-shadow:0 0 0 9px rgba(242,106,68,.28)}}
+.warn.alert .bang{animation:bangPulse 1s ease-in-out 4}
+@keyframes bangPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.28)}}
+.stamp{display:inline-block;animation:stamp .55s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes stamp{0%{opacity:0;transform:scale(2.4) rotate(-12deg)}100%{opacity:1;transform:scale(1) rotate(-3deg)}}
+.cnt.fu{color:var(--green)}.cnt.fd{color:var(--coral)}
+.track{display:flex;align-items:center;margin:10px 0 2px}
+.track .n{flex:none;width:32px;height:32px;border-radius:50%;background:#E3E9F5;color:var(--muted);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:all .4s}
+.track .n.done{background:var(--teal);color:var(--navy)}.track .n.cur{background:var(--navy);color:#fff;animation:curPulse 1.6s infinite}
+.track .seg{flex:1;height:4px;background:#E3E9F5;position:relative;overflow:hidden}.track .seg i{position:absolute;inset:0;background:var(--teal);transform-origin:left;transform:scaleX(0);transition:transform .8s ease}.track .seg.full i{transform:scaleX(1)}
+@keyframes curPulse{0%,100%{box-shadow:0 0 0 0 rgba(8,8,40,.35)}50%{box-shadow:0 0 0 7px rgba(8,8,40,0)}}
+#splash{position:fixed;inset:0;background:var(--navy);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:50;pointer-events:none;opacity:0;animation:splash 1.6s ease forwards}
+#splash .d{font-size:clamp(56px,15vw,130px);font-weight:700;letter-spacing:.06em;color:var(--teal);line-height:1}
+#splash .s{font-size:clamp(18px,4.2vw,32px);opacity:.92;margin-top:10px;text-align:center;padding:0 22px}
+#splash.hot .d{color:var(--coral)}
+@keyframes splash{0%{opacity:0;transform:scale(1.06)}16%{opacity:1;transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:scale(.98)}}
+#toasts{position:fixed;right:14px;bottom:14px;z-index:60;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--navy);color:#fff;border-left:5px solid var(--teal);border-radius:10px;padding:10px 14px;font-weight:700;box-shadow:0 6px 18px rgba(8,8,40,.3);animation:toast 3.4s ease forwards}
+@keyframes toast{0%{opacity:0;transform:translateX(30px)}10%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0;transform:translateX(20px)}}
+.gauge{height:18px;background:#E3E9F5;border-radius:9px;overflow:hidden;margin:8px 0}.gauge i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--teal),var(--green));border-radius:9px;transition:width 1.4s cubic-bezier(.2,.8,.2,1)}
+header.top .snd{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer}
+header.top .snd.on{background:var(--teal);color:var(--navy);border-color:var(--teal);font-weight:700}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.stagger{opacity:1!important}#splash{display:none}}
 .chip{display:inline-block;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;border:1px solid var(--line);background:#fff}
 .chip.live{background:#E3F6F2;border-color:var(--teal);color:var(--teal-d)}.chip.off{background:#FFF1EC;border-color:var(--coral);color:#B2401F}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);margin-left:6px;vertical-align:middle}
@@ -63,6 +105,7 @@ td.fresh select{background:#E3F6F2;border-color:var(--teal)}
 </head>
 <body>
 <div id="app"></div>
+<div id="toasts"></div>
 <script>
 /* ===================== DATA (generated from the activity data file) ===================== */
 const DATA = {"rounds": [{"n": 1, "day": 5, "name": "Pressure Arrives", "scenario": "Senior management asks for an immediate recovery plan.", "options": [{"text": "Add two mandatory pipeline reviews per day", "target": 4, "capacity": -6, "trust": -3}, {"text": "Cancel internal meetings and protect selling time", "target": 2, "capacity": 3, "trust": 2}, {"text": "Push top performers to take additional opportunities", "target": 6, "capacity": -8, "trust": -4}, {"text": "Ask the whole team to extend working hours", "target": 5, "capacity": -10, "trust": -5}]}, {"n": 2, "day": 4, "name": "Customer Friction", "scenario": "Two large accounts are waiting for follow-up, while the team is under increasing pressure to generate new revenue before quarter close.", "options": [{"text": "Delay customer follow-up until after quarter close", "target": 5, "capacity": -2, "trust": -2}, {"text": "Assign both accounts to one of your top performers", "target": 4, "capacity": -7, "trust": -3}, {"text": "Rebalance workload across the team", "target": 2, "capacity": 2, "trust": 3}, {"text": "Focus only on opportunities that are already close to closing", "target": 6, "capacity": -3, "trust": -2}]}, {"n": 3, "day": 3, "name": "A Performer Starts Struggling", "scenario": "One salesperson misses two important customer follow-ups and appears overwhelmed.", "options": [{"text": "Remove the salesperson’s key accounts and give them to stronger performers", "target": 5, "capacity": -5, "trust": -6}, {"text": "Run a focused 20-minute coaching intervention", "target": 2, "capacity": 6, "trust": 5}, {"text": "Increase daily monitoring and require additional updates", "target": 3, "capacity": -4, "trust": -5}, {"text": "Pair the salesperson with a stronger colleague for support", "target": 2, "capacity": 4, "trust": 4}]}, {"n": 4, "day": 2, "name": "Pipeline Reality Check", "scenario": "A major opportunity in the forecast is now unlikely to close this quarter. Removing it would put the forecast significantly below target.", "options": [{"text": "Keep the opportunity in the forecast and push harder to close it", "target": 4, "capacity": -2, "trust": -6}, {"text": "Remove the opportunity from the forecast and reset expectations", "target": -2, "capacity": 2, "trust": 6}, {"text": "Offer a stronger commercial incentive to accelerate the deal", "target": 6, "capacity": -1, "trust": -1}, {"text": "Shift attention toward smaller, faster-to-close opportunities", "target": 4, "capacity": -3, "trust": -2}]}, {"n": 5, "day": 1, "name": "The Final Push", "scenario": "It is the final day of the quarter. The team is now close to target, but fatigue is visible across the team.", "options": [{"text": "Launch one final all-hands push until the end of the day", "target": 7, "capacity": -9, "trust": -4}, {"text": "Focus only on the highest-probability deals and protect the rest of the team", "target": 5, "capacity": -2, "trust": 1}, {"text": "Pause, redistribute the remaining workload, and protect critical commitments", "target": 2, "capacity": 5, "trust": 4}, {"text": "Ask the top performers to carry the remaining target gap", "target": 6, "capacity": -8, "trust": -5}]}]};
@@ -105,7 +148,7 @@ function copy(text, btn){ (navigator.clipboard?navigator.clipboard.writeText(tex
 const randSession = () => { const a="ABCDEFGHJKMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<6;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; };
 let FAC = load("l5.fac", {session:randSession(), groups:5, cur:0, reveal:REVEAL_DEFAULT, codes:true, proj:false, choices:{}, online:{}});
 FAC.online = FAC.online || {};
-let GRP = load("l5.grp", {n:null, session:"", reveal:REVEAL_DEFAULT, codes:true, choices:[], unlocked:0, notes:{}, sent:{}});
+let GRP = load("l5.grp", {n:null, session:"", reveal:REVEAL_DEFAULT, codes:true, choices:[], unlocked:0, notes:{}, sent:{}, splashed:{}});
 GRP.sent = GRP.sent || {};
 const saveFac = () => save("l5.fac", FAC), saveGrp = () => save("l5.grp", GRP);
 const facChoices = n => (FAC.choices[n] = FAC.choices[n] || [null,null,null,null,null]);
@@ -119,7 +162,7 @@ function setStatus(st){ SYNC.status=st; const el=$("#syncchip"); if(el){ el.clas
 function syncStop(){ if(SYNC.es){ SYNC.es.close(); SYNC.es=null; } clearTimeout(SYNC.timer); SYNC.status="off"; SYNC.session=""; SYNC.role=""; }
 function syncStart(session, role){
   if(!session) return; if(SYNC.session===session && SYNC.role===role && (SYNC.es||SYNC.timer)) return;
-  syncStop(); SYNC.session=session; SYNC.role=role; SYNC.topic=topicOf(session); SYNC.last=null; SYNC.seen=new Set(); setStatus("connecting"); syncConnect();
+  syncStop(); SYNC.session=session; SYNC.role=role; SYNC.topic=topicOf(session); SYNC.t0=Date.now()-1500; SYNC.last=null; SYNC.seen=new Set(); setStatus("connecting"); syncConnect();
 }
 function syncConnect(){
   if(!SYNC.session) return;
@@ -131,25 +174,67 @@ function syncConnect(){
   es.onerror=()=>{ SYNC.fail=(SYNC.fail||0)+1; setStatus(SYNC.fail>=2?"off":"connecting"); try{es.close();}catch(e){} SYNC.es=null; SYNC.timer=setTimeout(syncConnect,2500); };
 }
 async function syncSend(p){ if(!SYNC.topic) return false; try{ const r=await fetch(relayBase()+SYNC.topic,{method:"POST",body:JSON.stringify(Object.assign({ts:Date.now()},p))}); return r.ok; }catch(e){ return false; } }
-let softTimer=null;
-function softRender(){ const a=document.activeElement; if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && $("#app").contains(a)){ clearTimeout(softTimer); softTimer=setTimeout(softRender,1500); return; } route(); }
+let softTimer=null, FRESH_T=0;
+function softRender(force){ const wait=1800-(Date.now()-FRESH_T); if(!force && !REDUCED() && wait>0){ clearTimeout(softTimer); softTimer=setTimeout(softRender,wait+50); return; }
+   const a=document.activeElement; if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && $("#app").contains(a)){ clearTimeout(softTimer); softTimer=setTimeout(softRender,1500); return; } route(); }
 const FRESH = {};
 function onSyncMessage(p){
   if(SYNC.role==="fac"){
-    if(p.t==="hello"){ FAC.online[p.g]=p.ts||1; }
-    else if(p.t==="choice" && p.g>=1 && p.g<=8){ if(p.g>FAC.groups) FAC.groups=p.g; facChoices(p.g)[p.r-1]=p.c; FRESH[p.g+"-"+(p.r-1)]=Date.now(); setTimeout(softRender,3300); }
+    if(p.t==="hello"){ FAC.online[p.g]=p.ts||1; if(p.ts>SYNC.t0){ toast("Group "+p.g+" joined"); sfx("tick"); } }
+    else if(p.t==="choice" && p.g>=1 && p.g<=8){ if(p.g>FAC.groups) FAC.groups=p.g; facChoices(p.g)[p.r-1]=p.c; FRESH[p.g+"-"+(p.r-1)]=Date.now(); setTimeout(softRender,3300); if(p.ts>SYNC.t0){ toast("Group "+p.g+" locked Day "+DATA.rounds[p.r-1].day+" · "+p.c); sfx("lock"); } }
     else if(p.t==="set" && p.g>=1 && p.g<=8){ const c=fromCode("G"+p.g+"-"+p.ch); if(c) FAC.choices[p.g]=c.ch; }
     else if(p.t==="cur"){ FAC.cur=p.cur; }
     else return;
     saveFac(); softRender();
   } else if(SYNC.role==="group" && GRP.n){
-    if(p.t==="cur"){ GRP.cur=p.cur; GRP.unlocked=Math.max(GRP.unlocked,p.cur); }
+    if(p.t==="cur"){ GRP.cur=p.cur; GRP.unlocked=Math.max(GRP.unlocked,p.cur); saveGrp(); softRender(true); return; }
     else if(p.t==="settings"){ if(p.reveal) GRP.reveal=p.reveal; if(typeof p.codes==="boolean") GRP.codes=p.codes; }
     else if(p.t==="set" && p.g===GRP.n){ const c=fromCode("G"+p.g+"-"+p.ch); if(c){ GRP.choices=c.ch; GRP.unlocked=Math.max(GRP.unlocked,doneCount(c.ch)); } }
     else if(p.t==="choice" && p.g===GRP.n){ GRP.choices[p.r-1]=p.c; }
     else return;
     saveGrp(); softRender();
   }
+}
+
+/* ===================== game feel: motion, counters, sound ===================== */
+const REDUCED = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const STATS = {enter:0, sfx:[], splash:0};
+let LAST_KEY = "", ANIM_NOW = false, PREV = {};
+let SND = load("l5.snd", false), AC = null;
+function tone(f,t,d,type="sine",v=.12){ if(!AC) return; const o=AC.createOscillator(), g=AC.createGain(); o.type=type; o.frequency.value=f; const T=AC.currentTime+t; g.gain.setValueAtTime(0.0001,T); g.gain.linearRampToValueAtTime(v,T+.01); g.gain.exponentialRampToValueAtTime(.0001,T+d); o.connect(g); g.connect(AC.destination); o.start(T); o.stop(T+d+.05); }
+function sfx(name){
+  if(!SND) return; STATS.sfx.push(name);
+  try{ AC = AC || new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==="suspended") AC.resume(); }catch(e){ return; }
+  const P={pick:[[660,0,.07]],tick:[[880,0,.05]],lock:[[440,0,.09],[660,.09,.15]],day:[[392,0,.1],[523,.1,.1],[659,.2,.2]],
+    warn:[[330,0,.16,"square",.06],[220,.18,.16,"square",.06],[330,.36,.16,"square",.06]],reveal:[[523,0,.09],[659,.09,.09],[784,.18,.09],[1047,.27,.24]]}[name]||[];
+  P.forEach(([f,t,d,ty,v])=>tone(f,t,d,ty||"sine",v||.12));
+}
+const cnt=(key,to,from,pre="",suf="%")=>`<span class="cnt" data-k="${key}" data-to="${to}" data-from="${from===undefined?to:from}" data-pre="${pre}" data-suf="${suf}">${pre}${to}${suf}</span>`;
+function runFx(fresh){
+  document.querySelectorAll(".cnt").forEach(el=>{
+    const to=+el.dataset.to, key=el.dataset.k, pre=el.dataset.pre||"", suf=el.dataset.suf||"";
+    const was=PREV[key];
+    let from = (fresh && el.dataset.from!==undefined) ? +el.dataset.from : ((was!==undefined && was!=="?") ? +was : to);
+    if(was==="?"){ const c=el.closest("td,.tile"); if(c && !REDUCED()) c.classList.add("flip"); from=to; }
+    PREV[key]=to;
+    if(from===to || REDUCED()) return;
+    const t0=performance.now(), dur=950, up=to>from; el.classList.add(up?"fu":"fd"); el.textContent=pre+from+suf;
+    const step=now=>{ const k=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-k,3); el.textContent=pre+Math.round(from+(to-from)*e)+suf; if(k<1) requestAnimationFrame(step); else el.classList.remove("fu","fd"); };
+    requestAnimationFrame(step);
+  });
+  document.querySelectorAll(".q").forEach(el=>{ PREV[el.dataset.k]="?"; });
+  document.querySelectorAll(".gauge i").forEach(i=>{ if(REDUCED()) i.style.width=i.dataset.w+"%"; else setTimeout(()=>{ i.style.width=i.dataset.w+"%"; },350); });
+}
+function showSplash(big, small, hot){
+  if(REDUCED()) return; STATS.splash++;
+  const old=$("#splash"); if(old) old.remove();
+  const d=document.createElement("div"); d.id="splash"; d.className=hot?"hot":""; d.innerHTML=`<div class="d">${esc(big)}</div><div class="s">${esc(small)}</div>`; document.body.appendChild(d);
+  setTimeout(()=>{ const x=$("#splash"); if(x) x.remove(); },1700);
+}
+function toast(msg){ const box=$("#toasts"); if(!box) return; const t=document.createElement("div"); t.className="toast"; t.textContent=msg; box.appendChild(t); setTimeout(()=>t.remove(),3500); }
+function trackHtml(ch, r){
+  const days=DATA.rounds.map((x,i)=>{ const done=i<doneCount(ch), cur=i===r-1; return `<div class="n ${done?"done":(cur?"cur":"")}">${done?"✓":"D"+x.day}</div>${i<4?`<div class="seg ${i<doneCount(ch)?"full":""}"><i></i></div>`:""}`; }).join("");
+  return `<div class="track">${days}</div>`;
 }
 
 /* ===================== charts ===================== */
@@ -181,7 +266,7 @@ function shell(inner, tab){
   let tabs=[["#/","Home"],["#/facilitator","Facilitator"],["#/compare","Compare (1.1)"],["#/group","Group"],["#/aftermath","Aftermath (1.1)"]];
   if(GRP.n && (tab==="#/group" || tab==="#/aftermath")) tabs=[["#/group","Group"],["#/aftermath","Aftermath (1.1)"]];   // group devices do not need the facilitator pages
   return `<header class="top"><img src="${LOGO}" alt="Skills Bank"><div class="t">The Last 5 Days</div>
-  <nav>${tabs.map(([h,l])=>`<a href="${h}" class="${tab===h?"on":""}">${l}</a>`).join("")}</nav></header><main>${inner}</main>`;
+  <nav>${tabs.map(([h,l])=>`<a href="${h}" class="${tab===h?"on":""}">${l}</a>`).join("")}<button class="snd ${SND?"on":""}" data-act="snd">${SND?"Sound on":"Sound off"}</button></nav></header><main>${inner}</main>`;
 }
 
 function viewHome(){
@@ -207,7 +292,8 @@ function facScore(proj){
     const C = proj ? (showHidden?tH.C:"?") : full.C, Tr = proj ? (showHidden?tH.Tr:"?") : full.Tr;
     const Co = proj ? (showHidden?BASE.Co:"?") : BASE.Co;
     const R = proj ? (FAC.cur>5 ? full.R : "?") : (doneCount(ch)?full.R:"—");
-    return `<tr><td class="lab">Group ${n}</td><td><b>${T}%</b></td><td>${C}${C==="?"?"":"%"}</td><td>${Tr}${Tr==="?"?"":"%"}</td><td>${Co}${Co==="?"?"":"%"}</td><td><b>${R}${(R==="?"||R==="—")?"":"%"}</b></td><td class="note">${doneCount(ch)}/5</td></tr>`;
+    const cell=(key,v,bold)=>(v==="?"||v==="—") ? `<span class="${v==="?"?"q":""}" data-k="${key}">${v}</span>` : `${bold?"<b>":""}${cnt(key,v)}${bold?"</b>":""}`;
+    return `<tr><td class="lab">Group ${n}</td><td>${cell("f"+n+"T",T,true)}</td><td>${cell("f"+n+"C",C)}</td><td>${cell("f"+n+"Tr",Tr)}</td><td>${cell("f"+n+"Co",Co)}</td><td>${cell("f"+n+"R",R,true)}</td><td class="note">${doneCount(ch)}/5</td></tr>`;
   }).join("");
   return `<div class="scroll"><table><tr><th></th><th>Target</th><th>Capacity</th><th>Trust</th><th>Continuity</th><th>Real Target</th><th>Days</th></tr>${rows}</table></div>`;
 }
@@ -253,14 +339,15 @@ function warnCard(ch, r){
   const rows=[]; for(let i=0;i<n;i++){ const o=fx(ch,i); if(!o) continue; const b=totals(ch,i), a=totals(ch,i+1);
     rows.push(`<tr><td class="lab">Day ${DATA.rounds[i].day} · you chose ${ch[i]}</td><td class="${dcls(o.capacity)}">${arrow(o.capacity)} Capacity ${verb(o.capacity)} (${b.C}% → ${a.C}%)</td><td class="${dcls(o.trust)}">${arrow(o.trust)} Trust ${verb(o.trust)} (${b.Tr}% → ${a.Tr}%)</td><td>${arrow(0)} Continuity did not change</td></tr>`); }
   const head = n===1 ? `Watch out: your Day ${DATA.rounds[0].day} choice also changed things you could not see.` : "Watch out: your earlier choices also changed things you could not see.";
-  return `<div class="warn"><h2><span class="bang">!</span>${head}</h2><p style="margin:0 0 8px">Until now you only saw the Target. Here is what those choices did to <b>Capacity</b> and <b>Trust</b>. From now on you will see everything move as you decide.</p><div class="scroll"><table><tr><th></th><th>Capacity</th><th>Trust</th><th>Continuity</th></tr>${rows.join("")}</table></div></div>`;
+  return `<div class="warn ${ANIM_NOW?"alert":""}"><h2><span class="bang">!</span>${head}</h2><p style="margin:0 0 8px">Until now you only saw the Target. Here is what those choices did to <b>Capacity</b> and <b>Trust</b>. From now on you will see everything move as you decide.</p><div class="scroll"><table><tr><th></th><th>Capacity</th><th>Trust</th><th>Continuity</th></tr>${rows.join("")}</table></div></div>`;
 }
 function groupTiles(ch, r){
   const reveal = GRP.reveal, hiddenOK = r>=reveal, k=doneCount(ch);
   const tT = totals(ch, k), tH = totals(ch, hiddenOK ? Math.min(r-1,5) : 0), prevH = totals(ch, Math.max(0, r-2)), lastT = totals(ch, Math.max(0,k-1));
   const dT = k>=1 ? tT.T-lastT.T : 0, dC = tH.C-prevH.C, dTr = tH.Tr-prevH.Tr;
-  const tile=(label,v,hidden,note,delta)=>`<div class="tile ${hidden?"hid":""}"><div class="k">${label}</div><div class="v">${hidden?"?":v+"%"}</div>${(!hidden && delta!==undefined)?`<div class="d ${dcls(delta)}">${arrow(delta)} ${delta===0?"no change":(delta>0?"+":"\u2212")+Math.abs(delta)} since the last day</div>`:`<div class="d">${note||""}</div>`}</div>`;
-  return `<div class="grid g4">${tile("Target attainment",tT.T,false,"visible from the start",k>=1?dT:undefined)}${tile("Team capacity",tH.C,!hiddenOK,"hidden for now",hiddenOK?dC:undefined)}${tile("Customer continuity",BASE.Co,!hiddenOK,"hidden for now",hiddenOK?0:undefined)}${tile("Team trust",tH.Tr,!hiddenOK,"hidden for now",hiddenOK?dTr:undefined)}</div>`;
+  const first = hiddenOK && r===reveal && ANIM_NOW;
+  const tile=(idx,label,key,v,from,hidden,note,delta)=>`<div class="tile ${hidden?"hid":""} ${(first&&idx>0)?"unlock":""}" ${(first&&idx>0)?`style="animation-delay:${(idx*0.22).toFixed(2)}s"`:""}><div class="k">${label}</div><div class="v">${hidden?"?":cnt(key,v,from)}</div>${(!hidden && delta!==undefined)?`<div class="d ${dcls(delta)}">${arrow(delta)} ${delta===0?"no change":(delta>0?"+":"\u2212")+Math.abs(delta)} since the last day</div>`:`<div class="d">${note||""}</div>`}</div>`;
+  return `<div class="grid g4">${tile(0,"Target attainment","gT",tT.T,lastT.T,false,"visible from the start",k>=1?dT:undefined)}${tile(1,"Team capacity","gC",tH.C,prevH.C,!hiddenOK,"hidden for now",hiddenOK?dC:undefined)}${tile(2,"Customer continuity","gCo",BASE.Co,BASE.Co,!hiddenOK,"hidden for now",hiddenOK?0:undefined)}${tile(3,"Team trust","gTr",tH.Tr,prevH.Tr,!hiddenOK,"hidden for now",hiddenOK?dTr:undefined)}</div>`;
 }
 function viewGroup(q){
   if(q.s){ GRP.session=q.s; GRP.reveal=+q.r||REVEAL_DEFAULT; GRP.codes=q.c!=="0"; if(q.g && !GRP.n) GRP.n=+q.g; saveGrp(); }
@@ -271,12 +358,13 @@ function viewGroup(q){
   }
   const ch=GRP.choices, r=Math.min(doneCount(ch)+1, 6), code=toCode(GRP.n,ch);
   const top=`<div class="card"><div class="row" style="justify-content:space-between"><div><span class="pill">Group ${GRP.n}</span> <span class="pill t">${r<=5?"Day "+DATA.rounds[r-1].day+" · round "+r+" of 5":"Final reveal"}</span></div>
-   <div><span id="syncchip" class="chip"></span> Our code <span class="code">${code}</span> <button class="btn sec sm" data-act="gcopy">Copy</button> <button class="btn sec sm" data-act="gsync">Sync code</button> <button class="btn sec sm" data-act="gleave">Leave</button></div></div></div>`;
+   <div><span id="syncchip" class="chip"></span> Our code <span class="code">${code}</span> <button class="btn sec sm" data-act="gcopy">Copy</button> <button class="btn sec sm" data-act="gsync">Sync code</button> <button class="btn sec sm" data-act="gleave">Leave</button></div></div>${trackHtml(ch,r)}</div>`;
   if(r>5){
     const t=totals(ch,5);
+    const ft=(i,label,key,v,from)=>`<div class="tile ${ANIM_NOW?"stagger":""}" style="animation-delay:${(i*0.45).toFixed(2)}s"><div class="k">${label}</div><div class="v">${cnt(key,v,from)}</div></div>`;
     return shell(`${top}<h1>Final reveal</h1><p class="lead">Here is what really happened.</p>
-    <div class="grid g4"><div class="tile"><div class="k">Target</div><div class="v">${t.T}%</div></div><div class="tile"><div class="k">Capacity</div><div class="v">${t.C}%</div></div><div class="tile"><div class="k">Continuity</div><div class="v">${t.Co}%</div></div><div class="tile"><div class="k">Trust</div><div class="v">${t.Tr}%</div></div></div>
-    <div class="callout" style="margin:12px 0">Real Target (average of Target, Capacity and Trust): ${t.R}%</div>
+    <div class="grid g4">${ft(0,"Target","fT",t.T,BASE.T)}${ft(1,"Capacity","fC",t.C,BASE.C)}${ft(2,"Continuity","fCo",t.Co,t.Co)}${ft(3,"Trust","fTr",t.Tr,BASE.Tr)}</div>
+    <div class="callout ${ANIM_NOW?"stagger":""}" style="margin:12px 0;animation-delay:2.0s">Real Target (average of Target, Capacity and Trust): ${cnt("fR",t.R,0)}<div class="gauge"><i data-w="${Math.min(100,t.R)}"></i></div></div>
     <a class="btn" href="#/aftermath">Continue to the Aftermath (1.1)</a>`, "#/group");
   }
   const rd=DATA.rounds[r-1], needCode = GRP.codes && GRP.unlocked<r;
@@ -288,18 +376,21 @@ function viewGroup(q){
   return shell(`${top}${r===GRP.reveal?warnCard(ch,r):""}${groupTiles(ch,r)}
   <div class="card" style="margin-top:12px"><span class="pill">Day ${rd.day}</span><h2 style="margin-top:8px">${esc(rd.name)}</h2><p>${esc(rd.scenario)}</p><label>Choose ONE action</label>
   ${rd.options.map((o,i)=>`<button class="opt ${sel===LETTERS[i]?"sel":""}" data-act="pick" data-l="${LETTERS[i]}"><span class="l">${LETTERS[i]}</span><span>${esc(o.text)}</span></button>`).join("")}
-  <div class="row"><button class="btn" data-act="lock" ${sel?"":"disabled"}>Lock in our choice</button><span class="note">${r>=GRP.reveal?"You will see every effect straight away.":"You will see the effect on the Target straight away. Other effects appear later."}</span></div></div>`, "#/group");
+  <div class="row"><button class="btn go" data-act="lock" ${sel?"":"disabled"}>Lock in our choice</button><span class="note">${r>=GRP.reveal?"You will see every effect straight away.":"You will see the effect on the Target straight away. Other effects appear later."}</span></div></div>`, "#/group");
 }
+const sentText=(i,ch)=>GRP.sent&&GRP.sent[i+1]?"Sent to your facilitator ✓":"Not sent yet. If it stays like this, tell your facilitator the code "+toCode(GRP.n,ch)+".";
 function viewResult(){ /* shown right after locking a choice */
   const ch=GRP.choices, i=doneCount(ch)-1, rd=DATA.rounds[i], o=rd.options[LETTERS.indexOf(ch[i])], b=totals(ch,i), t=totals(ch,i+1), all=(i+1)>=GRP.reveal;
-  const eff=(label,delta,from,to)=>`<div class="tile"><div class="k">${label}</div><div class="v ${dcls(delta)}">${arrow(delta)} ${delta>0?"+":(delta<0?"\u2212":"")}${Math.abs(delta)}%</div><div class="d">${delta===0?"no change":(delta>0?"increased":"decreased")} · ${from}% → ${to}%</div></div>`;
+  const st=(n)=>ANIM_NOW?`class="tile stagger" style="animation-delay:${(0.25+n*0.18).toFixed(2)}s"`:`class="tile"`;
+  const eff=(n,label,key,delta,from,to)=>`<div ${st(n)}><div class="k">${label}</div><div class="v ${dcls(delta)}">${arrow(delta)} ${cnt("r"+i+key,Math.abs(delta),0,delta>0?"+":(delta<0?"\u2212":""),"%")}</div><div class="d">${delta===0?"no change":(delta>0?"increased":"decreased")} · ${from}% → ${to}%</div></div>`;
   const next = i+1<5 ? "Wait for the facilitator to open the next day." : "The final reveal is next.";
+  const sent = `<span id="sentnote">${sentText(i,ch)}</span>`;
   const body = all
-    ? `<div class="grid g4">${eff("Target attainment",o.target,b.T,t.T)}${eff("Team capacity",o.capacity,b.C,t.C)}${eff("Team trust",o.trust,b.Tr,t.Tr)}${eff("Customer continuity",0,BASE.Co,BASE.Co)}</div>
-       <p class="note" style="margin-top:12px">${GRP.sent&&GRP.sent[i+1]?"Sent to your facilitator ✓":"Not sent yet. If it stays like this, tell your facilitator the code "+toCode(GRP.n,ch)+"."} You now see everything move as you decide. ${next}</p>`
-    : `<div class="tile" style="max-width:320px"><div class="k">Target attainment</div><div class="v ${cls(o.target)}">${sgn(o.target)}%</div><div class="d">Target now ${t.T}%</div></div>
-       <p class="note" style="margin-top:12px">${GRP.sent&&GRP.sent[i+1]?"Sent to your facilitator ✓":"Not sent yet. If it stays like this, tell your facilitator the code "+toCode(GRP.n,ch)+"."} Capacity, Trust and Continuity are hidden for now and appear from Day ${DATA.rounds[GRP.reveal-1]?DATA.rounds[GRP.reveal-1].day:"the end"}. ${next}</p>`;
-  return shell(`<div class="card"><span class="pill">Day ${rd.day} · your choice ${ch[i]}</span><p style="margin:10px 0">${esc(o.text)}</p>${body}
+    ? `<div class="grid g4">${eff(0,"Target attainment","T",o.target,b.T,t.T)}${eff(1,"Team capacity","C",o.capacity,b.C,t.C)}${eff(2,"Team trust","Tr",o.trust,b.Tr,t.Tr)}${eff(3,"Customer continuity","Co",0,BASE.Co,BASE.Co)}</div>
+       <p class="note" style="margin-top:12px">${sent} You now see everything move as you decide. ${next}</p>`
+    : `<div style="max-width:320px">${(()=>{ const d=o.target; return `<div ${st(0)}><div class="k">Target attainment</div><div class="v ${cls(d)}">${arrow(d)} ${cnt("r"+i+"T",Math.abs(d),0,d>0?"+":(d<0?"\u2212":""),"%")}</div><div class="d">Target now ${t.T}%</div></div>`; })()}</div>
+       <p class="note" style="margin-top:12px">${sent} Capacity, Trust and Continuity are hidden for now and appear from Day ${DATA.rounds[GRP.reveal-1]?DATA.rounds[GRP.reveal-1].day:"the end"}. ${next}</p>`;
+  return shell(`<div class="card"><span class="pill">Day ${rd.day} · your choice ${ch[i]}</span> <span class="${ANIM_NOW?"stamp":""} pill t" style="margin-left:6px">Locked in ✓</span><p style="margin:10px 0">${esc(o.text)}</p>${body}
    <a class="btn" href="#/group" data-act="next" style="margin-top:8px;display:inline-block">${i+1<5?"Continue":"Go to the final reveal"}</a></div>`, "#/group");
 }
 
@@ -338,6 +429,10 @@ function viewCompare(){
 
 /* ===================== router + events ===================== */
 let SHOW_RESULT=false;
+function screenKey(path){
+  if(path==="#/group"){ if(!GRP.n) return "g-join"; const ch=GRP.choices, k=doneCount(ch), r=Math.min(k+1,6); if(SHOW_RESULT && k>0) return "g-res-"+k; if(r>5) return "g-final"; return "g-"+r+"-"+((GRP.codes && GRP.unlocked<r)?"lock":"play"); }
+  return path;
+}
 const facOK = () => sessionStorage.getItem("l5.ok")==="1";
 function route(){
   const raw=location.hash||"#/"; const [path,qs]=raw.split("?"); const q=Object.fromEntries(new URLSearchParams(qs||""));
@@ -346,12 +441,26 @@ function route(){
   if(path==="#/facilitator"||path==="#/compare") syncStart(FAC.session,"fac");
   else if((path==="#/group"||path==="#/aftermath") && GRP.n && GRP.session) syncStart(GRP.session,"group");
   else syncStop();
+  const key=screenKey(path), fresh = key!==LAST_KEY; ANIM_NOW = fresh && !REDUCED();
   if(path==="#/facilitator") html=viewFacilitator();
   else if(path==="#/group") html=SHOW_RESULT && GRP.n && doneCount(GRP.choices)>0 ? viewResult() : viewGroup(q);
   else if(path==="#/aftermath") html=viewAftermath();
   else if(path==="#/compare") html=viewCompare();
   else html=viewHome();
   $("#app").innerHTML=html; setStatus(SYNC.status);
+  LAST_KEY=key; if(fresh) FRESH_T=Date.now();
+  if(fresh && !REDUCED()){ const m=$("#app main"); if(m){ m.classList.add("enter"); STATS.enter++; } }
+  runFx(fresh);
+  if(fresh && path==="#/group" && GRP.n){
+    const k=doneCount(GRP.choices), r=Math.min(k+1,6);
+    if(SHOW_RESULT && k>0){ sfx("lock"); if(k>=GRP.reveal) setTimeout(()=>sfx("reveal"),350); }
+    else if(r>5){ sfx("reveal"); }
+    else if(!(GRP.codes && GRP.unlocked<r)){
+      const rd=DATA.rounds[r-1], hot = r===GRP.reveal;
+      GRP.splashed=GRP.splashed||{};
+      if(!GRP.splashed[r]){ GRP.splashed[r]=true; saveGrp(); showSplash("DAY "+rd.day, hot?"The numbers you could not see are about to move":rd.name, hot); sfx(hot?"warn":"day"); }
+    }
+  }
 }
 window.addEventListener("hashchange",()=>{ SHOW_RESULT=false; route(); });
 document.addEventListener("click",e=>{
@@ -359,6 +468,7 @@ document.addEventListener("click",e=>{
   if(a==="copycode"){ copy(toCode(+b.dataset.g, facChoices(+b.dataset.g)), b); return; }
   if(a==="copylink"){ copy($(".code[style*='break-all']").textContent, b); return; }
   if(a==="opencur"){ FAC.cur=+b.dataset.v; saveFac(); route(); syncSend({t:"cur",cur:FAC.cur}); syncSend({t:"settings",reveal:FAC.reveal,codes:FAC.codes}); return; }
+  if(a==="snd"){ SND=!SND; save("l5.snd",SND); if(SND) sfx("tick"); route(); return; }
   if(a==="pinok"){ if($("[data-act=pin]").value.trim()===FAC_PIN){ sessionStorage.setItem("l5.ok","1"); location.hash=b.dataset.target; route(); } else $("#pinmsg").textContent="Wrong code."; return; }
   if(a==="newsession"){ if(confirm("Create a new session code? Groups will need the new link.")){ FAC.session=randSession(); saveFac(); syncStop(); route(); } return; }
   if(a==="proj"){ FAC.proj=!FAC.proj; saveFac(); route(); return; }
@@ -370,8 +480,8 @@ document.addEventListener("click",e=>{
   if(a==="gleave"){ if(confirm("Leave this group and clear your choices on this device?")){ GRP={n:null,session:GRP.session,reveal:GRP.reveal,codes:GRP.codes,choices:[],unlocked:0,notes:{}}; saveGrp(); route(); } return; }
   if(a==="gsync"){ const s=prompt("Paste the code from your facilitator (like G3-BCA):"); const c=fromCode(s); if(c){ GRP.choices=c.ch; GRP.unlocked=Math.max(GRP.unlocked,doneCount(c.ch)+(GRP.codes?0:1)); saveGrp(); route(); } else if(s) alert("That code is not valid."); return; }
   if(a==="unlock"){ const r=doneCount(GRP.choices)+1, v=$("[data-act=gcode]").value.trim(); if(!GRP.codes || v===roundCode(GRP.session,r)){ GRP.unlocked=r; saveGrp(); route(); } else $("#gmsg").textContent="That code is not right. Check with your facilitator."; return; }
-  if(a==="pick"){ GRP.pick=b.dataset.l; saveGrp(); route(); return; }
-  if(a==="lock"){ const i=doneCount(GRP.choices); GRP.choices[i]=GRP.pick; const letter=GRP.pick; GRP.pick=null; saveGrp(); SHOW_RESULT=true; route(); syncSend({t:"choice",g:GRP.n,r:i+1,c:letter}).then(ok=>{ GRP.sent=GRP.sent||{}; GRP.sent[i+1]=!!ok; saveGrp(); if(SHOW_RESULT) route(); }); return; }
+  if(a==="pick"){ GRP.pick=b.dataset.l; saveGrp(); sfx("pick"); route(); return; }
+  if(a==="lock"){ const i=doneCount(GRP.choices); GRP.choices[i]=GRP.pick; const letter=GRP.pick; GRP.pick=null; saveGrp(); SHOW_RESULT=true; route(); syncSend({t:"choice",g:GRP.n,r:i+1,c:letter}).then(ok=>{ GRP.sent=GRP.sent||{}; GRP.sent[i+1]=!!ok; saveGrp(); const el=$("#sentnote"); if(el) el.textContent=sentText(i,GRP.choices); }); return; }
   if(a==="next"){ e.preventDefault(); SHOW_RESULT=false; route(); return; }
   if(a==="copynotes"){ const N=GRP.notes; copy(`Group ${GRP.n}\nWHAT?\n${N.what||""}\n\nSO WHAT?\n${N.sowhat||""}\n\nNOW WHAT?\n${N.nowwhat||""}\n\nKEEP: ${N.keep||""}\nSTOP: ${N.stop||""}\nSTART: ${N.start||""}`, b); return; }
 });
@@ -385,7 +495,7 @@ document.addEventListener("change",e=>{
 });
 document.addEventListener("keydown",e=>{ if(e.key==="Enter" && e.target.matches("[data-act=pin]")) $("[data-act=pinok]").click(); });
 document.addEventListener("input",e=>{ const el=e.target.closest("[data-act=note]"); if(el){ GRP.notes[el.dataset.k]=el.value; saveGrp(); } });
-window.L5 = {totals, toCode, fromCode, roundCode, topicOf, DATA, get FAC(){return FAC;}, get GRP(){return GRP;}, get SYNC(){return SYNC;}};
+window.L5 = {STATS, totals, toCode, fromCode, roundCode, topicOf, DATA, get FAC(){return FAC;}, get GRP(){return GRP;}, get SYNC(){return SYNC;}};
 route();
 </script>
 </body>
