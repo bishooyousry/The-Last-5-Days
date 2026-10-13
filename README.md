@@ -29,6 +29,12 @@ This keeps casual visitors out; it is not strong security, because the code is i
 
 You can still **edit any cell** in the table. The change is sent to that group's screen.
 
+## Language: English / Arabic
+- The top bar has a **العربية / English** button on every screen (including the join and facilitator pages). **Each person switches their own device**; the choice is remembered on that device.
+- Arabic is **simplified Modern Standard Arabic** and the page flips to **right-to-left**. The core terms stay in English on purpose: Target, Capacity, Trust, Real Target, WHAT? / SO WHAT? / NOW WHAT? and Keep / Stop / Start.
+- In the facilitator console, **Copy Arabic link** gives you the group link with `&lang=ar` at the end, so a group opens straight in Arabic. (Any link can also be opened in Arabic by adding `&lang=ar` to it, or `&lang=en` for English.)
+- Everything is translated: the screens, the case and cards, the buttons, the pop-up messages, the trainer notes and the debrief. The only thing that stays in English is the browser tab title until the page loads.
+
 ## Game feel
 - Each stage opens with a full-screen **countdown splash** ("5 DAYS · left · Pressure Arrives"); the screen then slides in. The 4-Days stage has a warmer splash: "the numbers you could not see are about to move".
 - A **progress track** (5 → 1, "days left") fills as the group plays.
